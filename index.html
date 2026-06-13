@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6abe30">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>生字大冒險</title>
+<style>
+:root{
+  --sky1:#79c7ee; --sky2:#bfe9ff;
+  --grass:#6abe30; --grass-d:#4a8a1f; --grass-l:#7ed149;
+  --dirt:#9b6a43; --dirt-d:#6e4a2a;
+  --stone:#9a9a9a; --stone-d:#6f6f6f;
+  --wood:#bb8a52; --wood-d:#8a6238;
+  --diamond:#3fd0e0; --diamond-d:#2a9fad;
+  --gold:#ffd83d; --exp:#7ee03f; --exp-d:#4fa019;
+  --red:#d24b3e; --green:#5aa83c; --heart:#e23b3b;
+  --ink:#2b2118; --panel:#fffdf5; --panelline:#e6dcc4;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; height:100%;}
+body{
+  font-family:'PingFang TC','Microsoft JhengHei','Heiti TC',sans-serif;
+  color:var(--ink);
+  background:linear-gradient(180deg,var(--sky1),var(--sky2) 55%, #cdeeb0 80%, #8fce5a 100%);
+  background-attachment:fixed; min-height:100%;
+  -webkit-user-select:none; user-select:none; overflow-x:hidden;
+}
+.kai{font-family:'BiauKai','標楷體','DFKai-SB',serif;}
+/* 像素雲背景 */
+.sky{position:fixed; inset:0; z-index:-2; overflow:hidden; pointer-events:none;}
+.cloud{position:absolute; width:60px; height:18px; background:#fff; border-radius:3px;
+  box-shadow: 22px -12px 0 0 #fff, 44px 0 0 0 #fff, 22px 0 0 8px #fff, -10px 0 0 0 #fff;
+  opacity:.85; animation:drift linear infinite;}
+@keyframes drift{ from{transform:translateX(-140px);} to{transform:translateX(110vw);} }
+/* 地面草皮條（固定底部） */
+.ground{position:fixed; left:0; right:0; bottom:0; height:46px; z-index:-1; pointer-events:none;
+  background:repeating-linear-gradient(90deg,var(--grass) 0 24px,var(--grass-l) 24px 48px);
+  box-shadow: inset 0 7px 0 var(--grass-l), inset 0 -30px 0 var(--dirt), inset 0 -46px 0 var(--dirt-d);}
+.block{
+  border:3px solid rgba(0,0,0,.25);
+  box-shadow: inset 3px 3px 0 rgba(255,255,255,.35), inset -3px -3px 0 rgba(0,0,0,.22), 4px 4px 0 rgba(0,0,0,.18);
+  border-radius:4px;
+}
+.btn{
+  cursor:pointer; border:none; font-family:inherit; font-weight:800; color:#fff;
+  padding:12px 16px; font-size:18px; border-radius:6px; letter-spacing:1px;
+  box-shadow: inset 3px 3px 0 rgba(255,255,255,.32), inset -4px -4px 0 rgba(0,0,0,.28), 3px 4px 0 rgba(0,0,0,.2);
+  transition:transform .05s;
+}
+.btn:active{transform:translateY(2px); box-shadow: inset 3px 3px 0 rgba(255,255,255,.25), inset -3px -3px 0 rgba(0,0,0,.3);}
+.btn-grass{background:var(--grass);} .btn-dirt{background:var(--dirt);}
+.btn-stone{background:var(--stone);} .btn-wood{background:var(--wood);}
+.btn-diamond{background:var(--diamond); color:#0a4a52;}
+.btn-gold{background:var(--gold); color:#5a4500;}
+.btn-red{background:var(--red);} .btn-green{background:var(--green);}
+.wrap{max-width:980px; margin:0 auto; padding:14px; padding-bottom:60px;}
+header.bar{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  background:var(--dirt); color:#fff; padding:10px 14px; margin:-14px -14px 14px;
+  box-shadow: inset 0 5px 0 var(--grass), inset 0 9px 0 var(--grass-l), inset 0 -4px 0 var(--dirt-d);
+}
+header.bar h1{font-size:20px; margin:0; letter-spacing:2px; text-shadow:2px 2px 0 rgba(0,0,0,.3);}
+header.bar .sp{flex:1;}
+.pill{background:rgba(0,0,0,.18); padding:5px 10px; border-radius:20px; font-size:13px; font-weight:700;}
+.iconbtn{background:rgba(0,0,0,.18); border:none; color:#fff; cursor:pointer; font-size:18px; padding:6px 10px; border-radius:6px;}
+.iconbtn.on{background:var(--gold); color:#5a4500;}
+
+.hero{text-align:center; padding:24px 10px;}
+.hero .logo{font-size:46px; font-weight:900; letter-spacing:4px; color:#fff;
+  text-shadow:3px 3px 0 var(--dirt-d), 0 0 2px #000; margin-bottom:6px;}
+.hero .torch{font-size:30px; margin:0 8px; filter:drop-shadow(0 0 6px #ffb53d);}
+.hero .sub{color:#2f5320; font-weight:800; margin-bottom:20px; background:rgba(255,255,255,.55);
+  display:inline-block; padding:5px 14px; border-radius:20px;}
+.grade-grid{display:flex; gap:12px; justify-content:center; flex-wrap:wrap;}
+.grade-card{width:160px; padding:18px; background:var(--grass); color:#fff; text-align:center; cursor:pointer;}
+.grade-card .t{font-size:24px; font-weight:900; text-shadow:2px 2px 0 var(--grass-d);}
+.grade-card .d{font-size:13px; opacity:.9; margin-top:6px;}
+.grade-card.locked{background:var(--stone); cursor:not-allowed; opacity:.85;}
+
+.lesson-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px;}
+.lesson-card{padding:14px; background:var(--wood); color:#fff; cursor:pointer; position:relative;}
+.lesson-card .no{font-size:12px; opacity:.85;}
+.lesson-card .nm{font-size:19px; font-weight:900; margin-top:4px; text-shadow:1px 1px 0 var(--wood-d);}
+.lesson-card .meta{font-size:12px; margin-top:8px; opacity:.9;}
+.lesson-card .bar2{height:9px; background:rgba(0,0,0,.28); border-radius:5px; margin-top:6px; overflow:hidden;
+  box-shadow: inset 0 2px 2px rgba(0,0,0,.3);}
+.lesson-card .bar2 i{display:block; height:100%; background:var(--exp); box-shadow:0 0 6px var(--exp);}
+
+.modeswitch{display:flex; gap:8px; margin-bottom:12px;}
+.modeswitch .btn{flex:1; font-size:16px;}
+.modeswitch .btn.dim{filter:grayscale(.55) brightness(.9);}
+
+.card{background:var(--panel); padding:20px; text-align:center; position:relative;}
+.card::before{content:""; position:absolute; inset:0; border-radius:4px; pointer-events:none;
+  background:linear-gradient(180deg, rgba(255,255,255,.5), transparent 8px);}
+.charrow{display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap;}
+.char-big{font-size:96px; line-height:1.1; cursor:pointer; color:var(--ink); text-shadow:2px 2px 0 #d8cdb0;}
+.char-big:active{transform:scale(.96);}
+.zhuyin{font-size:30px; color:var(--red); font-weight:700; letter-spacing:1px;}
+.spk{font-size:13px; color:var(--diamond-d); font-weight:700; margin-top:4px;}
+.fields{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px;}
+.field{background:#fff; border:2px solid var(--panelline); border-radius:6px; padding:10px; text-align:left;}
+.field .lab{font-size:12px; color:#9a8c6a; font-weight:700;}
+.field .val{font-size:18px; font-weight:700; margin-top:2px;}
+.field.full{grid-column:1/3;}
+.tagrow{display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;}
+.tag{background:var(--sky2); color:#1b5566; padding:3px 9px; border-radius:14px; font-size:15px; cursor:pointer; font-weight:700;}
+details.adv{margin-top:12px; background:#f3eeda; border-radius:6px; padding:8px 12px; text-align:left;}
+details.adv summary{cursor:pointer; font-weight:800; color:var(--dirt-d);}
+details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
+.navrow{display:flex; align-items:center; gap:10px; margin-top:16px;}
+.navrow .btn{flex:1;}
+.counter{font-weight:800; color:var(--dirt-d); min-width:70px; text-align:center;}
+
+/* 抽考 */
+.quizsetup .opt{display:flex; align-items:center; gap:8px; background:#fff; border:2px solid var(--panelline);
+  padding:10px; border-radius:6px; margin-bottom:8px; cursor:pointer; font-weight:700;}
+.quizsetup .opt input{width:20px; height:20px;}
+.q-prompt{font-size:18px; color:var(--dirt-d); font-weight:800; margin-bottom:10px;}
+/* 經驗條 + 愛心 HUD */
+.hud{display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
+.hearts{font-size:18px; letter-spacing:1px;}
+.expbar{flex:1; min-width:120px; height:16px; background:#3a3a3a; border-radius:4px; overflow:hidden;
+  box-shadow: inset 0 2px 3px rgba(0,0,0,.5); border:2px solid #222;}
+.expbar i{display:block; height:100%; background:repeating-linear-gradient(90deg,var(--exp) 0 8px,var(--exp-d) 8px 10px);
+  transition:width .2s;}
+.hudtxt{font-weight:800; color:var(--dirt-d); font-size:14px;}
+/* 生詞提示 */
+.hintword{display:inline-block; background:#fff7d6; border:2px dashed var(--gold); color:#6a5200;
+  padding:8px 16px; border-radius:8px; font-size:24px; font-weight:800; margin:8px 0;}
+.hintword .zy{color:var(--red);}
+.cover-wrap{position:relative; display:inline-block; margin:6px auto;}
+.answer-box{background:#fff; border:2px dashed var(--diamond-d); border-radius:8px; padding:18px 26px; min-width:200px;}
+.cover{position:absolute; inset:0; border-radius:8px; display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:800; font-size:15px; cursor:pointer;
+  background:#8b5a2b; background-image:
+    linear-gradient(335deg, rgba(0,0,0,.18) 23px, transparent 23px),
+    linear-gradient(155deg, rgba(0,0,0,.18) 23px, transparent 23px),
+    repeating-linear-gradient(0deg,#9b6a43 0 14px,#8a5d39 14px 28px),
+    repeating-linear-gradient(90deg,#9b6a43 0 14px,#8a5d39 14px 28px);
+  box-shadow: inset 4px 4px 0 rgba(255,255,255,.18), inset -4px -4px 0 rgba(0,0,0,.32);}
+.peek{position:absolute; top:-10px; right:-10px; width:48px; height:48px; border-radius:8px;
+  background:var(--gold); color:#5a4500; border:3px solid #fff; cursor:pointer; font-size:22px; font-weight:900;
+  display:flex; align-items:center; justify-content:center; box-shadow:2px 2px 0 rgba(0,0,0,.3); touch-action:none;}
+.crack{position:absolute; inset:0; opacity:0; pointer-events:none; border-radius:8px; transition:opacity .04s;
+  background:
+    linear-gradient(48deg, transparent 47%, rgba(0,0,0,.6) 48% 50%, transparent 51%),
+    linear-gradient(-28deg, transparent 58%, rgba(0,0,0,.55) 59% 61%, transparent 62%),
+    linear-gradient(75deg, transparent 38%, rgba(0,0,0,.5) 39% 41%, transparent 42%),
+    linear-gradient(-65deg, transparent 68%, rgba(0,0,0,.45) 69% 71%, transparent 72%);}
+.cover.breaking{animation:blockbreak .38s ease-in forwards; pointer-events:none;}
+@keyframes blockbreak{0%{transform:scale(1);}30%{transform:scale(1.05) translateY(-3px);}100%{transform:scale(.55) translateY(10px) rotate(4deg); opacity:0;}}
+.debris{position:fixed; width:12px; height:12px; background:#8a5d39; border:2px solid #6e4a2a; z-index:60; pointer-events:none; animation:fly .8s ease-out forwards;}
+@keyframes fly{
+  0%{transform:translate(0,0) rotate(0); opacity:1;}
+  35%{transform:translate(calc(var(--dx) * .55), var(--up)) rotate(150deg); opacity:1;}
+  100%{transform:translate(var(--dx), var(--down)) rotate(400deg); opacity:0;}
+}
+.judge{display:flex; gap:10px; margin-top:16px;}
+.judge .btn{flex:1; font-size:20px;}
+.statline{font-weight:800; color:var(--dirt-d); margin:8px 0;}
+.bigstat{text-align:center; padding:14px;}
+.levelup{font-size:22px; font-weight:900; color:var(--gold); text-shadow:2px 2px 0 var(--dirt-d); letter-spacing:2px;
+  animation:pop .5s ease;}
+@keyframes pop{0%{transform:scale(.4); opacity:0;} 60%{transform:scale(1.15);} 100%{transform:scale(1); opacity:1;}}
+.bigstat .num{font-size:52px; font-weight:900; color:var(--grass-d);}
+.wrongchip{display:inline-block; background:#ffe1dc; color:var(--red); padding:6px 12px; border-radius:16px;
+  margin:4px; font-size:22px; font-weight:800; cursor:pointer; font-family:'BiauKai',serif;}
+.hint{font-size:13px; color:#8a7c5a; text-align:center; margin-top:8px;}
+.empty{text-align:center; color:#8a7c5a; padding:30px; font-weight:700;}
+</style>
+</head>
+<body>
+<div class="sky" id="sky"></div>
+<div class="ground"></div>
+<div class="wrap">
+  <header class="bar">
+    <h1>🗺️ 生字大冒險</h1>
+    <span class="sp"></span>
+    <span class="pill" id="crumb">選擇年級</span>
+    <button class="iconbtn on" id="btnVoice" title="語音">🔊</button>
+    <button class="iconbtn on" id="btnSound" title="音效">🎵</button>
+    <button class="iconbtn" id="btnBgm" title="背景音樂（預設關）">🎶</button>
+    <button class="iconbtn" id="btnHome" title="回首頁">🏠</button>
+  </header>
+  <div id="view"></div>
+</div>
+
+<audio id="bgm" loop preload="none" src="audio/bgm.mp3"></audio>
+<script src="data/words.js"></script>
+<script>
+"use strict";
+const DATA = window.WORDS_DATA || {grades:[]};
+const LS_KEY = "cwq_state_v1";
+let store = loadStore();
+function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
+function saveStore(){ localStorage.setItem(LS_KEY, JSON.stringify(store)); }
+store.seen = store.seen || {};
+store.wrong = store.wrong || {};
+store.opt = store.opt || {voice:true, sound:true};
+
+let S = {gi:0, li:0, mode:"review", ci:0, quiz:null};
+
+// ====== 像素雲 ======
+(function makeClouds(){
+  const sky=document.getElementById("sky");
+  for(let i=0;i<5;i++){
+    const c=document.createElement("div"); c.className="cloud";
+    c.style.top=(6+i*16)+"%";
+    c.style.animationDuration=(38+i*11)+"s";
+    c.style.animationDelay=(-i*9)+"s";
+    c.style.transform="scale("+(0.7+Math.random()*0.8)+")";
+    sky.appendChild(c);
+  }
+})();
+
+// ====== 語音 ======
+let zhVoice=null;
+function pickVoice(){
+  const vs=speechSynthesis.getVoices(); if(!vs.length) return null;
+  const pref=["Meijia","美佳","Sinji","善怡","Shelley","Sandy","Yu-shu","Mei-Jia"];
+  let v=vs.find(x=>/zh-TW|zh_TW/i.test(x.lang)&&pref.some(p=>x.name.includes(p)));
+  v=v||vs.find(x=>/zh-TW|zh_TW/i.test(x.lang))||vs.find(x=>/zh|Chinese/i.test(x.lang));
+  return v;
+}
+function getVoice(){ if(!zhVoice) zhVoice=pickVoice(); return zhVoice; }
+if("speechSynthesis" in window){ speechSynthesis.onvoiceschanged=()=>{zhVoice=pickVoice();}; }
+function speak(text){
+  if(!store.opt.voice || !("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  const v=getVoice(); u.lang="zh-TW"; if(v){u.voice=v; u.lang=v.lang;}
+  u.rate=0.8; u.pitch=1; speechSynthesis.speak(u);
+}
+
+// ====== Minecraft 風音效（Web Audio 合成）======
+let actx=null;
+function ac(){ if(!actx){try{actx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}} if(actx&&actx.state==="suspended")actx.resume(); return actx; }
+function tone(freq,dur,type,vol,when){
+  if(!store.opt.sound) return; const a=ac(); if(!a)return;
+  const o=a.createOscillator(), g=a.createGain();
+  o.type=type||"square"; o.frequency.value=freq;
+  const t=a.currentTime+(when||0); g.gain.setValueAtTime(vol||0.06,t);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+dur);
+}
+function noise(dur,vol,when){
+  if(!store.opt.sound) return; const a=ac(); if(!a)return;
+  const n=Math.floor(a.sampleRate*dur), buf=a.createBuffer(1,n,a.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+  const src=a.createBufferSource(); src.buffer=buf;
+  const g=a.createGain(); g.gain.value=vol||0.05; const t=a.currentTime+(when||0);
+  const lp=a.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=800;
+  src.connect(lp); lp.connect(g); g.connect(a.destination); src.start(t);
+}
+const sPlace=()=>{ tone(160,.05,"square",.06); noise(.05,.04); };          // 放方塊
+const sClick=()=>{ tone(330,.04,"square",.05); };                          // 點擊
+const sOk  =()=>{ [740,990,1320].forEach((f,i)=>tone(f,.10,"sine",.06,i*.06)); }; // 經驗球
+const sNo  =()=>{ tone(180,.22,"sawtooth",.08); tone(120,.22,"sawtooth",.06,.05); noise(.12,.05); }; // 受傷
+const sDig =()=>{ for(let i=0;i<3;i++){ noise(.05,.05,i*.06); tone(90+i*15,.05,"square",.04,i*.06);} }; // 挖掘
+const sWin =()=>{ [523,659,784,1046,1318].forEach((f,i)=>tone(f,.14,"square",.06,i*.10)); };          // 升級
+const sBreak=()=>{ tone(130,.12,"square",.09); tone(70,.16,"sawtooth",.06,.02); noise(.2,.10); setTimeout(()=>{noise(.08,.05);},70); }; // 破壞方塊
+
+const grade=()=>DATA.grades[S.gi];
+const lesson=()=>grade().lessons[S.li];
+const elView=document.getElementById("view");
+const wkey=()=>S.gi+"|"+S.li;
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+function esc(s){return (s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function spawnDebris(el){ // 破壞方塊：往上噴 + 左右大範圍散開 + 落下
+  const r=el.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+  for(let i=0;i<18;i++){
+    const d=document.createElement("div"); d.className="debris";
+    const sz=8+Math.random()*9; d.style.width=sz+"px"; d.style.height=sz+"px";
+    d.style.left=cx+"px"; d.style.top=cy+"px";
+    d.style.setProperty("--dx",((Math.random()*2-1)*180)+"px");  // 左右散開更大
+    d.style.setProperty("--up",(-(90+Math.random()*90))+"px");   // 先往上噴
+    d.style.setProperty("--down",((Math.random()*100)+80)+"px"); // 再落下
+    document.body.appendChild(d); setTimeout(()=>d.remove(),820);
+  }
+}
+// 生詞提示：取含該字的造詞，把目標字換成注音（其他字保留國字）
+function hintWord(c){
+  const w=(c.words||[]).find(x=>x.includes(c.char)) || c.char;
+  return esc(w).split(c.char).join('<span class="zy">'+esc(c.zhuyin)+'</span>');
+}
+
+// ====== 首頁 ======
+function viewHome(){
+  document.getElementById("crumb").textContent="選擇年級";
+  let cards=DATA.grades.map((g,i)=>
+    `<div class="grade-card block" data-gi="${i}"><div class="t">${esc(g.label||g.grade)}</div>
+     <div class="d">${esc(g.publisher)} ‧ ${g.lessons.length}課</div></div>`).join("");
+  cards+=`<div class="grade-card block locked"><div class="t">三年級</div><div class="d">敬請期待</div></div>`;
+  elView.innerHTML=`<div class="hero">
+    <div class="logo"><span class="torch">🔥</span>生字大冒險<span class="torch">🔥</span></div>
+    <div class="sub">⛏️ 一起挖出每一課的生字寶藏！</div>
+    <div class="grade-grid">${cards}</div></div>`;
+  elView.querySelectorAll(".grade-card[data-gi]").forEach(c=>c.onclick=()=>{S.gi=+c.dataset.gi; sPlace(); viewLessons();});
+}
+
+// ====== 課次地圖 ======
+function viewLessons(){
+  const g=grade();
+  document.getElementById("crumb").textContent=g.label;
+  const cards=g.lessons.map((l,i)=>{
+    const seen=l.chars.filter(c=>store.seen[S.gi+"|"+i+"|"+c.char]).length;
+    const pct=Math.round(seen/l.chars.length*100);
+    const done=pct===100?" ✅":"";
+    return `<div class="lesson-card block" data-li="${i}">
+      <div class="no">第 ${l.id} 關${done}</div><div class="nm">${esc(l.title)}</div>
+      <div class="meta">${l.chars.length} 字 ‧ 已複習 ${seen}/${l.chars.length}</div>
+      <div class="bar2"><i style="width:${pct}%"></i></div></div>`;
+  }).join("");
+  elView.innerHTML=`<div class="lesson-grid">${cards}</div>`;
+  elView.querySelectorAll(".lesson-card").forEach(c=>c.onclick=()=>{S.li=+c.dataset.li; S.ci=0; S.mode="review"; sPlace(); viewStudy();});
+}
+
+// ====== 學習頁（複習↔抽考共用）======
+function viewStudy(){
+  const l=lesson();
+  document.getElementById("crumb").textContent=grade().label+" ‧ 第"+l.id+"關";
+  elView.innerHTML=`
+    <div class="modeswitch">
+      <button class="btn btn-grass" id="mReview">📖 複習</button>
+      <button class="btn btn-gold" id="mQuiz">📝 抽考</button>
+    </div><div id="sub"></div>`;
+  const setBtns=()=>{
+    document.getElementById("mReview").classList.toggle("dim",S.mode!=="review");
+    document.getElementById("mQuiz").classList.toggle("dim",S.mode!=="quiz");
+  };
+  document.getElementById("mReview").onclick=()=>{S.mode="review"; S.ci=0; sClick(); setBtns(); renderReview();};
+  document.getElementById("mQuiz").onclick=()=>{S.mode="quiz"; sClick(); setBtns(); renderQuizSetup();};
+  setBtns();
+  if(S.mode==="review") renderReview(); else renderQuizSetup();
+}
+
+// ---- 複習 ----
+function renderReview(){
+  const l=lesson(), c=l.chars[S.ci];
+  store.seen[S.gi+"|"+S.li+"|"+c.char]=1; saveStore();
+  const words=c.words.map(w=>`<span class="tag" data-say="${esc(w)}">${esc(w)}</span>`).join("");
+  // 進階補充（成語/詞義/破音）暫時取消，等自修版照片再以那版做
+  document.getElementById("sub").innerHTML=`<div class="card block">
+    <div class="charrow">
+      <div><div class="char-big kai" id="bigChar">${esc(c.char)}</div><div class="spk">👆 點字念給我聽</div></div>
+      <div><div class="zhuyin">${esc(c.zhuyin)}</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><div class="lab">部首</div><div class="val kai">${esc(c.radical)}</div></div>
+      <div class="field"><div class="lab">筆畫</div><div class="val">${c.strokes} 畫</div></div>
+      <div class="field full"><div class="lab">造詞（點詞念音）</div><div class="tagrow">${words}</div></div>
+      <div class="field full"><div class="lab">造句（點句念音 🔊）</div><div class="val" id="sentSay" style="font-weight:600; cursor:pointer">${esc(c.sentence)}</div></div>
+    </div>
+    <div class="navrow">
+      <button class="btn btn-stone" id="prev">◀ 上一個</button>
+      <span class="counter">${S.ci+1} / ${l.chars.length}</span>
+      <button class="btn btn-grass" id="next">下一個 ▶</button>
+    </div>
+    <div class="hint">綠色經驗條會記住你看過哪些字</div></div>`;
+  document.getElementById("bigChar").onclick=()=>{sClick(); speak(c.say||c.char);};
+  document.getElementById("sentSay").onclick=()=>{sClick(); speak(c.sentence);};
+  document.querySelectorAll(".tag").forEach(t=>t.onclick=()=>{sClick(); speak(t.dataset.say);});
+  document.getElementById("prev").onclick=()=>{ if(S.ci>0){S.ci--; sClick(); renderReview();} };
+  document.getElementById("next").onclick=()=>{
+    if(S.ci<l.chars.length-1){S.ci++; sClick(); renderReview();}
+    else{ sWin(); viewLessons(); }
+  };
+  speak(c.say||c.char);
+}
+
+// ---- 抽考設定 ----
+const QTYPES=[
+  {k:"zhuyin", t:"看字 → 念注音", show:c=>c.char, ans:c=>c.zhuyin},
+  {k:"radical",t:"看字 → 答部首", show:c=>c.char, ans:c=>c.radical+" 部"},
+  {k:"strokes",t:"看字 → 答筆畫", show:c=>c.char, ans:c=>c.strokes+" 畫"},
+  {k:"word2char",t:"聽注音 → 寫字", show:c=>c.zhuyin, ans:c=>c.char, say:c=>c.char},
+  {k:"makeword",t:"看字 → 造詞/造句（口頭）", show:c=>c.char, ans:c=>c.words.join("、")+"／"+c.sentence},
+];
+function renderQuizSetup(){
+  const l=lesson();
+  const wrongList=store.wrong[wkey()]||[];
+  const opts=QTYPES.map(q=>`<label class="opt"><input type="checkbox" class="qt" value="${q.k}" ${q.k!=="makeword"?"checked":""}> ${q.t}</label>`).join("");
+  document.getElementById("sub").innerHTML=`<div class="card block quizsetup">
+    <div class="q-prompt">老師設定抽考（在電腦上操作，答案會蓋住）</div>
+    ${opts}
+    <label class="opt"><input type="checkbox" id="useHint" checked> 顯示生詞提示（例：ㄊㄢˋ險）</label>
+    <label class="opt"><input type="checkbox" id="onlyWrong" ${wrongList.length?"":"disabled"}> 只考錯題本（目前 ${wrongList.length} 字）</label>
+    <label class="opt"><input type="checkbox" id="doShuffle" checked> 隨機出題順序</label>
+    <div class="navrow">
+      <button class="btn btn-stone" id="back">◀ 返回</button>
+      <button class="btn btn-gold" id="start">開始抽考 ▶</button>
+    </div>
+    <div class="hint">抽考時：按住右上角 🔑 才看得到答案，放手就蓋回；老師按「答對／答錯」記分</div></div>`;
+  document.getElementById("back").onclick=()=>{S.mode="review"; viewStudy();};
+  document.getElementById("start").onclick=()=>{
+    const types=[...document.querySelectorAll(".qt:checked")].map(x=>x.value);
+    if(!types.length){alert("請至少選一種題型");return;}
+    let chars=l.chars.slice();
+    if(document.getElementById("onlyWrong").checked){
+      const w=store.wrong[wkey()]||[]; chars=chars.filter(c=>w.includes(c.char));
+    }
+    let queue=[];
+    chars.forEach(c=>types.forEach(tk=>queue.push({c, q:QTYPES.find(q=>q.k===tk)})));
+    if(document.getElementById("doShuffle").checked) queue=shuffle(queue);
+    S.quiz={queue, idx:0, ok:0, no:0, hint:document.getElementById("useHint").checked};
+    sPlace(); renderQuizCard();
+  };
+}
+
+// ---- 抽考出題 ----
+function renderQuizCard(){
+  const Q=S.quiz;
+  if(Q.idx>=Q.queue.length){ return renderQuizDone(); }
+  const {c,q}=Q.queue[Q.idx];
+  const showVal=q.show(c), ansVal=q.ans(c);
+  const isChar=(q.k!=="word2char");
+  const total=Q.queue.length, pct=Math.round(Q.idx/total*100);
+  const hearts="❤️".repeat(Math.min(Q.ok,10))||"—";
+  const hintHTML = Q.hint ? `<div class="hintword">📖 生詞：${hintWord(c)}</div>` : "";
+  document.getElementById("sub").innerHTML=`<div class="card block">
+    <div class="hud">
+      <span class="hearts">${hearts}</span>
+      <span class="expbar"><i style="width:${pct}%"></i></span>
+      <span class="hudtxt">第 ${Q.idx+1}/${total} ‧ ❌${Q.no}</span>
+    </div>
+    <div class="q-prompt">${esc(q.t)}</div>
+    <div class="${isChar?'char-big kai':'zhuyin'}" id="qShow" style="cursor:pointer">${esc(showVal)}</div>
+    <div class="spk">👆 點題目可念音</div>
+    ${hintHTML}
+    <div style="margin-top:6px"><div class="cover-wrap">
+      <div class="answer-box"><span class="${q.k==='word2char'?'char-big kai':'zhuyin'}" style="font-size:${q.k==='makeword'?'18px':''}">${esc(ansVal)}</span></div>
+      <div class="cover" id="cover">⛏️ 點一下挖開答案<div class="crack" id="crack"></div></div>
+    </div></div>
+    <div class="judge">
+      <button class="btn btn-green" id="ok">答對 ✓</button>
+      <button class="btn btn-red" id="no">答錯 ✗</button>
+    </div>
+    <div class="navrow"><button class="btn btn-stone" id="stop">結束抽考</button></div>
+    <div class="hint">點一下方塊挖開答案，再點一下蓋回（學生看不到）</div></div>`;
+  const sayText=c.say||c.char;
+  document.getElementById("qShow").onclick=()=>{sClick(); speak(sayText);};
+  if(q.k==="word2char") speak(sayText);
+  const cover=document.getElementById("cover"), crack=document.getElementById("crack");
+  let broken=false;
+  cover.addEventListener("click",()=>{
+    if(broken){ // 再點一下：方塊重組蓋回
+      broken=false; cover.classList.remove("breaking"); cover.style.display="flex"; crack.style.opacity=0;
+    } else { // 點一下：破壞方塊 → 裂紋＋碎片飛散 → 露答案
+      broken=true; sBreak(); crack.style.opacity=1; cover.classList.add("breaking"); spawnDebris(cover);
+      setTimeout(()=>{ if(broken) cover.style.display="none"; }, 360);
+    }
+  });
+  document.getElementById("ok").onclick=()=>{Q.ok++; sOk(); removeWrong(c.char); Q.idx++; renderQuizCard();};
+  document.getElementById("no").onclick=()=>{Q.no++; sNo(); addWrong(c.char); Q.idx++; renderQuizCard();};
+  document.getElementById("stop").onclick=()=>renderQuizDone();
+}
+function addWrong(ch){ const k=wkey(); store.wrong[k]=store.wrong[k]||[]; if(!store.wrong[k].includes(ch))store.wrong[k].push(ch); saveStore(); }
+function removeWrong(ch){ const k=wkey(); if(store.wrong[k]) store.wrong[k]=store.wrong[k].filter(x=>x!==ch); saveStore(); }
+
+// ---- 抽考結算 ----
+function renderQuizDone(){
+  const Q=S.quiz, total=Q.ok+Q.no, pct=total?Math.round(Q.ok/total*100):0;
+  sWin();
+  const wlist=store.wrong[wkey()]||[], lc=lesson().chars;
+  const chips=wlist.length? wlist.map(ch=>{const cc=lc.find(x=>x.char===ch); const sy=cc?(cc.say||ch):ch;
+      return `<span class="wrongchip" data-ch="${esc(ch)}" data-say="${esc(sy)}">${esc(ch)}</span>`;}).join("")
+                          : `<div class="empty">這關錯題本是空的，太棒了！🏆</div>`;
+  const medal = pct===100?"🏆 全部答對！":(pct>=80?"⭐ 闖關高手！":(pct>=60?"💪 再接再厲！":"🌱 多練習會更棒！"));
+  document.getElementById("sub").innerHTML=`<div class="card block">
+    <div class="bigstat">
+      <div class="levelup">${medal}</div>
+      <div class="num">${pct}分</div>
+      <div class="expbar" style="max-width:320px;margin:8px auto"><i style="width:${pct}%"></i></div>
+      <div class="statline">答對 ${Q.ok} ‧ 答錯 ${Q.no}（共 ${total} 題）</div></div>
+    <div class="field full"><div class="lab">📕 本關錯題本（點字念音）</div><div style="margin-top:6px">${chips}</div></div>
+    <div class="navrow">
+      <button class="btn btn-gold" id="again">再考一次</button>
+      <button class="btn btn-stone" id="back">返回關卡</button>
+    </div></div>`;
+  document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.say||x.dataset.ch);});
+  document.getElementById("again").onclick=()=>{sClick(); renderQuizSetup();};
+  document.getElementById("back").onclick=()=>{sClick(); viewLessons();};
+}
+
+// ====== 頂部按鈕 ======
+function syncOptBtns(){
+  document.getElementById("btnVoice").classList.toggle("on",store.opt.voice);
+  document.getElementById("btnSound").classList.toggle("on",store.opt.sound);
+}
+document.getElementById("btnVoice").onclick=function(){store.opt.voice=!store.opt.voice; saveStore(); syncOptBtns(); if(store.opt.voice)speak("你好");};
+document.getElementById("btnSound").onclick=function(){store.opt.sound=!store.opt.sound; saveStore(); syncOptBtns(); if(store.opt.sound)sOk();};
+// 背景音樂：優先播放 audio/bgm.mp3（免版稅檔），載入失敗才退回合成鋼琴 loop；預設關
+if(store.opt.bgm===undefined) store.opt.bgm=false;
+const btnBgm=document.getElementById("btnBgm");
+const bgm=document.getElementById("bgm"); bgm.volume=0.35;
+let bgmTimer=null, bgmStep=0;
+const BGM_SEQ=[392,440,523,440, 392,330,392,294, 330,392,440,523, 440,392,330,294];
+function bgmNote(freq,dur,vol){ const a=ac(); if(!a)return;
+  const o=a.createOscillator(), g=a.createGain(); o.type="triangle"; o.frequency.value=freq;
+  const t=a.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.04);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+dur); }
+function startSynth(){ if(bgmTimer||!ac()) return; bgmStep=0;
+  const tick=()=>{ const f=BGM_SEQ[bgmStep%BGM_SEQ.length]; bgmNote(f,1.6,0.05);
+    if(bgmStep%4===0) bgmNote(f/2,2.0,0.04); bgmStep++; };
+  tick(); bgmTimer=setInterval(tick,720); }
+function stopSynth(){ if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null;} }
+btnBgm.onclick=function(){
+  store.opt.bgm=!store.opt.bgm; saveStore(); btnBgm.classList.toggle("on",store.opt.bgm);
+  if(store.opt.bgm){ bgm.play().catch(()=>startSynth()); } else { bgm.pause(); stopSynth(); }
+};
+document.getElementById("btnHome").onclick=function(){sClick(); viewHome();};
+
+syncOptBtns();
+if(!DATA.grades.length){ elView.innerHTML='<div class="empty">找不到生字資料（data/words.js）</div>'; }
+else viewHome();
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+</script>
+</body>
+</html>

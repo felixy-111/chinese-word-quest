@@ -1,0 +1,23 @@
+# ── 版權教材原檔（絕不公開）──
+*.docx
+*.pdf
+*.zip
+
+# ── 教師用書衍生中間檔 / 完整資料（含詞義、成語全文）──
+data/教師用書_完整版.md
+data/extracted_raw.txt
+data/lessons_fields.json
+data/teacher_fields.json
+data/words.json
+
+# ── 校對對照表（含教師用書內容）──
+生字總表*.md
+第一課*.md
+
+# ── 生成腳本（含教師用書處理邏輯）──
+*.py
+
+# ── demo 截圖、雜項 ──
+demo_*.png
+.DS_Store
+.playwright-mcp/
