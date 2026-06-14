@@ -599,16 +599,16 @@ function renderReview(){
 
 // ---- 抽考設定 ----
 const QTYPES=[
+  {k:"word2char",t:"聽注音 → 寫字", show:c=>c.zhuyin, ans:c=>c.char, say:c=>c.char},
   {k:"zhuyin", t:"看字 → 念注音", show:c=>c.char, ans:c=>c.zhuyin},
   {k:"radical",t:"看字 → 答部首", show:c=>c.char, ans:c=>c.radical+" 部"},
   {k:"strokes",t:"看字 → 答筆畫", show:c=>c.char, ans:c=>c.strokes+" 畫"},
-  {k:"word2char",t:"聽注音 → 寫字", show:c=>c.zhuyin, ans:c=>c.char, say:c=>c.char},
   {k:"makeword",t:"看字 → 造詞/造句（口頭）", show:c=>c.char, ans:c=>c.words.join("、")+"／"+c.sentence},
 ];
 function renderQuizSetup(){
   const l=lesson();
   const wrongList=store.wrong[wkey()]||[];
-  const opts=QTYPES.map(q=>`<label class="opt"><input type="checkbox" class="qt" value="${q.k}" ${q.k!=="makeword"?"checked":""}> ${q.t}</label>`).join("");
+  const opts=QTYPES.map(q=>`<label class="opt"><input type="checkbox" class="qt" value="${q.k}" ${q.k==="word2char"?"checked":""}> ${q.t}</label>`).join("");
   document.getElementById("sub").innerHTML=`<div class="card block quizsetup">
     <div class="q-prompt">老師設定抽考（在電腦上操作，答案會蓋住）</div>
     ${opts}
