@@ -193,6 +193,15 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
 .achvrow{display:flex; align-items:center; gap:10px; background:#fff; border:2px solid var(--panelline); border-radius:6px; padding:8px 10px; margin-bottom:6px;}
 .achvrow.locked{opacity:.45; filter:grayscale(1);}
 .achvrow .ic{font-size:24px;} .achvrow .nm{font-weight:800;} .achvrow .ds{font-size:12px; color:#8a7c5a;}
+.zoowall{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:8px 0;}
+.zoocell{background:#efe7d2; border-radius:8px; padding:6px 4px; text-align:center; min-height:62px; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+.zoocell.got{background:#dff0c8;}
+.zoocell .zoosvg{height:32px; display:flex; align-items:flex-end; justify-content:center;}
+.zoocell .zoosvg svg{height:32px; width:auto;}
+.zoowall svg{animation:none !important;} .zoowall svg *{animation:none !important;}
+.zoocell .zooname{font-size:11px; color:#5a4a2a; margin-top:3px; font-weight:700; line-height:1.2;}
+.zoocell .zoolock{font-size:22px; color:#b8ac90; height:32px; display:flex; align-items:center;}
+.zoocell:not(.got) .zooname{color:#a59a7a;}
 /* ── 第二波：視覺沈浸 ── */
 #loading{position:fixed; inset:0; z-index:500; background:linear-gradient(180deg,#16213e,#0f3320);
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; transition:opacity .5s;}
@@ -205,8 +214,13 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
 .critters{position:fixed; left:0; right:0; bottom:5px; height:40px; z-index:0; pointer-events:none; overflow:hidden;}
 .critter{position:absolute; bottom:0; left:-50px; animation:walk linear infinite;}
 @keyframes walk{ from{transform:translateX(-50px);} to{transform:translateX(102vw);} }
-.critter .hop{display:block; animation:hop .5s ease-in-out infinite;}
-@keyframes hop{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+.critter .hop{display:block; animation:hop 3.2s ease-in-out infinite;}
+@keyframes hop{0%,80%,100%{transform:translateY(0);} 86%{transform:translateY(-9px);} 92%{transform:translateY(0);} 96%{transform:translateY(-4px);}}
+.birds{position:fixed; left:0; right:0; top:0; height:48%; z-index:-1; pointer-events:none; overflow:hidden;}
+.bird{position:absolute; left:-60px; animation:birdfly linear infinite;}
+@keyframes birdfly{ from{transform:translateX(-60px);} to{transform:translateX(105vw);} }
+.bird svg{display:block; animation:flap .32s ease-in-out infinite;}
+@keyframes flap{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-6px) rotate(2deg);}}
 #buddy{position:fixed; left:0; bottom:6px; z-index:5; pointer-events:none; animation:bwalk 22s linear infinite;}
 @keyframes bwalk{0%{transform:translateX(2vw);}48%{transform:translateX(82vw);}50%{transform:translateX(82vw) scaleX(-1);}98%{transform:translateX(2vw) scaleX(-1);}100%{transform:translateX(2vw);}}
 #buddy svg{animation:bstep .42s ease-in-out infinite;}
@@ -233,6 +247,7 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
 <div id="loading"><div class="lblock"></div><div class="ltxt">🗺️ 生字大冒險</div><div class="lhint">載入中… ⛏️</div></div>
 <div class="sky" id="sky"></div>
 <div class="ground"></div>
+<div class="birds" id="birds"></div>
 <div class="critters" id="critters"></div>
 <div id="buddy"></div>
 <div id="strokeModal" class="smodal"><div class="sbox">
@@ -273,6 +288,7 @@ store.collected = store.collected || {};  // "gi|li" -> 1（該課抽考全對�
 store.streak = store.streak || 0;
 store.lastDay = store.lastDay || "";
 store.stats = store.stats || {quizOk:0, quizTotal:0};
+store.maxStreak = store.maxStreak || 0;
 
 let S = {gi:0, li:0, mode:"review", ci:0, quiz:null};
 
@@ -398,19 +414,26 @@ function renderHUD(){
 }
 // 收一塊礦石（該課抽考全對）
 function collectGem(){ const k=wkey(); if(store.collected[k]) return; store.collected[k]=1; saveStore(); sGem();
-  toast("💎 獲得礦石！"+grade().lessons[S.li].title,"gem"); renderHUD();
+  const a=GROUND_UNLOCK[S.li]; toast("🐾 解鎖新夥伴："+(a?a.name:"")+"！","gem"); renderHUD(); spawnCritters();
   if(collectedCount()>=totalLessons()) unlock("collectAll"); }
 // streak（每天首次學習）
-(function updateStreak(){ const today=new Date().toLocaleDateString('en-CA');
+function updateStreak(){ const today=new Date().toLocaleDateString('en-CA');
   if(store.lastDay!==today){ const y=new Date(Date.now()-864e5).toLocaleDateString('en-CA');
-    store.streak=(store.lastDay===y)?store.streak+1:1; store.lastDay=today; saveStore();
-    if(store.streak>=7) unlock("streak7"); } })();
+    const before=birdsUnlocked();
+    store.streak=(store.lastDay===y)?store.streak+1:1;
+    store.maxStreak=Math.max(store.maxStreak||0, store.streak); store.lastDay=today; saveStore();
+    if(store.streak>=7) unlock("streak7");
+    if(birdsUnlocked()>before){ const b=BIRDS[birdsUnlocked()-1]; setTimeout(()=>toast("🕊️ 連續學習解鎖："+(b?b.name:"天空夥伴")+"！",""),900); }
+  } else { store.maxStreak=Math.max(store.maxStreak||0, store.streak); } }
 // 我的進度頁（第一波簡版；第三波再加弱點字/筆順）
 function viewStats(){
   document.getElementById("crumb").textContent="我的進度";
   const li=levelInfo(), g=DATA.grades[0];
-  const cells=g.lessons.map((l,i)=>{ const got=store.collected["0|"+i];
-    return `<div class="gem ${got?'got':''}" title="${esc(l.title)}">${got?'💎':'▫'}</div>`; }).join("");
+  const groundCells=GROUND_UNLOCK.map((a,i)=>{ const got=store.collected["0|"+i];
+    return `<div class="zoocell ${got?'got':''}">`+(got?'<div class="zoosvg">'+a.svg()+'</div><div class="zooname">'+a.name+'</div>':'<div class="zoolock">？</div><div class="zooname">第'+(i+1)+'課全對</div>')+`</div>`; }).join("");
+  const bu=birdsUnlocked();
+  const birdCells=BIRDS.map((b,i)=>{ const got=i<bu;
+    return `<div class="zoocell ${got?'got':''}">`+(got?'<div class="zoosvg">'+b.svg()+'</div><div class="zooname">'+b.name+'</div>':'<div class="zoolock">？</div><div class="zooname">連續'+((i+1)*3)+'天</div>')+`</div>`; }).join("");
   const acc= store.stats.quizTotal? Math.round(store.stats.quizOk/store.stats.quizTotal*100):0;
   const achvHTML=ACHV.map(a=>`<div class="achvrow ${store.achv[a.id]?'':'locked'}">
     <span class="ic">${a.ic}</span><div><div class="nm">${a.nm}</div><div class="ds">${a.ds}</div></div></div>`).join("");
@@ -419,7 +442,8 @@ function viewStats(){
   elView.innerHTML=`<div class="card block" style="text-align:left">
     <div style="text-align:center"><div class="levelup">Lv.${li.lv}　${esc(li.name)}</div>
       <div class="statline">${store.xp} XP ‧ 🔥連續 ${store.streak} 天 ‧ 看過 ${seenCount()} 字 ‧ 抽考正確率 ${acc}%</div></div>
-    <div class="field full"><div class="lab">💎 收集圖鑑（每課抽考全對得一塊）</div><div class="gemwall">${cells}</div></div>
+    <div class="field full"><div class="lab">🐾 生物圖鑑（每課抽考全對解鎖）</div><div class="zoowall">${groundCells}</div></div>
+    <div class="field full"><div class="lab">🕊️ 天空夥伴（連續學習每 3 天解鎖）</div><div class="zoowall">${birdCells}</div></div>
     <div class="field full"><div class="lab">📕 弱點字（抽考錯過的字，點念音）</div><div style="margin-top:6px">${weakHTML}</div></div>
     <div class="field full"><div class="lab">🏅 成就</div>${achvHTML}</div>
     <div class="navrow"><button class="btn btn-stone" id="sback">◀ 返回</button></div></div>`;
@@ -487,9 +511,92 @@ function blobSVG(){ return `<svg class="hop" viewBox="0 0 12 14" width="30" heig
   <rect x="3.4" y="3" width="1.6" height="1.6" fill="#1c3a14"/><rect x="7" y="3" width="1.6" height="1.6" fill="#1c3a14"/>
   <rect x="5" y="5" width="2" height="3" fill="#1c3a14"/><rect x="4" y="6.5" width="1.2" height="1.6" fill="#1c3a14"/><rect x="6.8" y="6.5" width="1.2" height="1.6" fill="#1c3a14"/>
   <rect x="2.5" y="10" width="2.6" height="3.6" fill="#4f9a38"/><rect x="6.9" y="10" width="2.6" height="3.6" fill="#4f9a38"/></svg>`; }
-function spawnCritters(){ const box=document.getElementById("critters"); if(!box||box.children.length) return;
-  [pigSVG(),chickenSVG(),cowSVG(),sheepSVG(),foxSVG(),catSVG(),mooSVG(),blobSVG()].forEach((svg,i)=>{ const c=document.createElement("div");
-    c.className="critter"; c.innerHTML=svg; c.style.animationDuration=(13+i*3)+"s"; c.style.animationDelay=(-i*4)+"s"; box.appendChild(c); }); }
+function duckSVG(){ return `<svg class="hop" viewBox="0 0 16 13" width="40" height="32" shape-rendering="crispEdges">
+  <rect x="2" y="5" width="9" height="5" fill="#f5d23a"/><rect x="9" y="2" width="5" height="5" fill="#f5d23a"/>
+  <rect x="13" y="4" width="3" height="2" fill="#f08a2a"/><rect x="11" y="3" width="1" height="1" fill="#333"/>
+  <rect x="4" y="10" width="2" height="2" fill="#f08a2a"/><rect x="8" y="10" width="2" height="2" fill="#f08a2a"/></svg>`; }
+function rabbitSVG(){ return `<svg class="hop" viewBox="0 0 14 16" width="32" height="38" shape-rendering="crispEdges">
+  <rect x="3" y="7" width="8" height="6" fill="#f0ece4"/><rect x="8" y="4" width="5" height="5" fill="#f0ece4"/>
+  <rect x="8.5" y="0" width="1.6" height="5" fill="#f0ece4"/><rect x="11" y="0" width="1.6" height="5" fill="#f0ece4"/>
+  <rect x="9" y="1" width="0.8" height="3" fill="#f5b8c4"/><rect x="11.4" y="1" width="0.8" height="3" fill="#f5b8c4"/>
+  <rect x="11.5" y="6" width="1" height="1" fill="#a55"/>
+  <rect x="4" y="13" width="2" height="2.5" fill="#ddd5c8"/><rect x="8" y="13" width="2" height="2.5" fill="#ddd5c8"/></svg>`; }
+function frogSVG(){ return `<svg class="hop" viewBox="0 0 14 11" width="36" height="28" shape-rendering="crispEdges">
+  <rect x="2" y="4" width="10" height="5" fill="#5cb83a"/>
+  <rect x="2.5" y="2" width="3" height="3" fill="#5cb83a"/><rect x="8.5" y="2" width="3" height="3" fill="#5cb83a"/>
+  <rect x="3" y="2.4" width="1.4" height="1.4" fill="#fff"/><rect x="9" y="2.4" width="1.4" height="1.4" fill="#fff"/>
+  <rect x="3.4" y="2.8" width="0.7" height="0.7" fill="#222"/><rect x="9.4" y="2.8" width="0.7" height="0.7" fill="#222"/>
+  <rect x="1" y="8" width="2.5" height="2" fill="#4a9a2e"/><rect x="10.5" y="8" width="2.5" height="2" fill="#4a9a2e"/></svg>`; }
+function turtleSVG(){ return `<svg class="hop" viewBox="0 0 16 11" width="40" height="28" shape-rendering="crispEdges">
+  <rect x="3" y="3" width="9" height="5" fill="#3f8a4a"/><rect x="4" y="4" width="2" height="2" fill="#2c6435"/><rect x="8" y="4" width="2" height="2" fill="#2c6435"/>
+  <rect x="11" y="4" width="3" height="3" fill="#8ccf6a"/><rect x="12.5" y="4.8" width="1" height="1" fill="#333"/>
+  <rect x="3" y="8" width="2" height="2" fill="#8ccf6a"/><rect x="10" y="8" width="2" height="2" fill="#8ccf6a"/></svg>`; }
+function alpacaSVG(){ return `<svg class="hop" viewBox="0 0 14 18" width="32" height="42" shape-rendering="crispEdges">
+  <rect x="3" y="8" width="7" height="6" fill="#efe3cf"/>
+  <rect x="8" y="2" width="3" height="7" fill="#efe3cf"/><rect x="8" y="0.5" width="4" height="3" fill="#efe3cf"/>
+  <rect x="8" y="0" width="1" height="1.5" fill="#cabba0"/><rect x="11" y="0" width="1" height="1.5" fill="#cabba0"/>
+  <rect x="11" y="1.5" width="1" height="1" fill="#333"/>
+  <rect x="4" y="14" width="1.6" height="3.5" fill="#d8cab0"/><rect x="8" y="14" width="1.6" height="3.5" fill="#d8cab0"/></svg>`; }
+function pandaSVG(){ return `<svg class="hop" viewBox="0 0 15 13" width="38" height="33" shape-rendering="crispEdges">
+  <rect x="2" y="4" width="9" height="6" fill="#fff"/><rect x="9" y="2" width="5" height="5" fill="#fff"/>
+  <rect x="9" y="1.4" width="1.6" height="1.6" fill="#222"/><rect x="12.4" y="1.4" width="1.6" height="1.6" fill="#222"/>
+  <rect x="10" y="3.4" width="1.3" height="1.3" fill="#222"/><rect x="12.5" y="3.6" width="1" height="1" fill="#222"/>
+  <rect x="2" y="4" width="2" height="3" fill="#222"/>
+  <rect x="3" y="10" width="2" height="2.5" fill="#222"/><rect x="8" y="10" width="2" height="2.5" fill="#222"/></svg>`; }
+function hedgehogSVG(){ return `<svg class="hop" viewBox="0 0 16 11" width="40" height="28" shape-rendering="crispEdges">
+  <rect x="2" y="3" width="10" height="6" fill="#8a6a44"/>
+  <rect x="2" y="2" width="1.5" height="2" fill="#5a4428"/><rect x="4" y="1.5" width="1.5" height="2.5" fill="#5a4428"/><rect x="6" y="1.5" width="1.5" height="2.5" fill="#5a4428"/><rect x="8" y="2" width="1.5" height="2" fill="#5a4428"/>
+  <rect x="11" y="5" width="4" height="4" fill="#e8d0b0"/><rect x="14" y="6" width="1.5" height="1.5" fill="#3a2a1a"/><rect x="12" y="6" width="1" height="1" fill="#333"/>
+  <rect x="4" y="9" width="1.6" height="1.8" fill="#6a5238"/><rect x="8" y="9" width="1.6" height="1.8" fill="#6a5238"/></svg>`; }
+// ── 天空鳥（自製，飛行）──
+function parrotSVG(){ return `<svg viewBox="0 0 16 14" width="40" height="35" shape-rendering="crispEdges">
+  <rect x="5" y="3" width="6" height="7" fill="#b8bcc0"/><rect x="7" y="0" width="2.5" height="3" fill="#f5d23a"/>
+  <rect x="6" y="3" width="5" height="4" fill="#e8e8ec"/><rect x="6" y="5" width="1.6" height="1.6" fill="#f0903a"/>
+  <rect x="7.4" y="4" width="1.2" height="1.2" fill="#222"/><rect x="5" y="4.5" width="1.5" height="1.5" fill="#f5b53a"/>
+  <rect x="10" y="5" width="3" height="3" fill="#9aa0a6"/><rect x="11" y="9" width="2" height="4" fill="#8a9096"/>
+  <rect x="7" y="10" width="1" height="2" fill="#d8a060"/><rect x="9" y="10" width="1" height="2" fill="#d8a060"/></svg>`; }
+function sparrowSVG(){ return `<svg viewBox="0 0 14 11" width="34" height="27" shape-rendering="crispEdges">
+  <rect x="3" y="3" width="6" height="5" fill="#9a7048"/><rect x="8" y="2" width="4" height="4" fill="#8a6038"/>
+  <rect x="9.5" y="3" width="1" height="1" fill="#222"/><rect x="11.5" y="3.5" width="1.5" height="1" fill="#e0a030"/>
+  <rect x="2" y="4" width="3" height="3" fill="#bfa078"/>
+  <rect x="3" y="8" width="1" height="2" fill="#c89030"/><rect x="6" y="8" width="1" height="2" fill="#c89030"/></svg>`; }
+function owlSVG(){ return `<svg viewBox="0 0 13 13" width="32" height="32" shape-rendering="crispEdges">
+  <rect x="2" y="2" width="9" height="9" fill="#8a6a48"/><rect x="2" y="1" width="2" height="2" fill="#6a4e30"/><rect x="9" y="1" width="2" height="2" fill="#6a4e30"/>
+  <rect x="3" y="4" width="3" height="3" fill="#f0e8d8"/><rect x="7" y="4" width="3" height="3" fill="#f0e8d8"/>
+  <rect x="4" y="5" width="1.4" height="1.4" fill="#222"/><rect x="8" y="5" width="1.4" height="1.4" fill="#222"/>
+  <rect x="6" y="6.5" width="1" height="1.2" fill="#e0a030"/></svg>`; }
+function swallowSVG(){ return `<svg viewBox="0 0 16 10" width="40" height="25" shape-rendering="crispEdges">
+  <rect x="5" y="3" width="6" height="4" fill="#2a3a5a"/><rect x="10" y="2" width="3" height="3" fill="#2a3a5a"/>
+  <rect x="11.5" y="3" width="1" height="1" fill="#fff"/><rect x="6" y="5" width="4" height="2" fill="#d09060"/>
+  <rect x="2" y="2" width="4" height="2" fill="#3a4a6a"/>
+  <rect x="0" y="4" width="3" height="1.5" fill="#2a3a5a"/><rect x="0" y="6.5" width="3" height="1.5" fill="#2a3a5a"/></svg>`; }
+function pigeonSVG(){ return `<svg viewBox="0 0 15 11" width="36" height="26" shape-rendering="crispEdges">
+  <rect x="3" y="3" width="6" height="5" fill="#b8c0cc"/><rect x="8" y="2" width="4" height="4" fill="#aeb6c2"/>
+  <rect x="9.5" y="3" width="1" height="1" fill="#c0392b"/><rect x="11.5" y="3.5" width="1.5" height="1" fill="#e0a030"/>
+  <rect x="2" y="4" width="3" height="3" fill="#9aa2ae"/>
+  <rect x="4" y="8" width="1" height="2" fill="#c0392b"/><rect x="7" y="8" width="1" height="2" fill="#c0392b"/></svg>`; }
+// 生物資料（index 對應課序）
+const GROUND_BASE=[chickenSVG, pigSVG, cowSVG];
+const GROUND_UNLOCK=[
+  {key:"sheep",name:"綿羊",svg:sheepSVG},{key:"fox",name:"狐狸",svg:foxSVG},{key:"cat",name:"貓咪",svg:catSVG},
+  {key:"moo",name:"蘑菇牛",svg:mooSVG},{key:"blob",name:"綠方塊小怪",svg:blobSVG},{key:"duck",name:"鴨子",svg:duckSVG},
+  {key:"rabbit",name:"兔子",svg:rabbitSVG},{key:"frog",name:"青蛙",svg:frogSVG},{key:"turtle",name:"烏龜",svg:turtleSVG},
+  {key:"alpaca",name:"羊駝",svg:alpacaSVG},{key:"panda",name:"熊貓",svg:pandaSVG},{key:"hedgehog",name:"刺蝟",svg:hedgehogSVG},
+];
+const BIRDS=[
+  {key:"parrot",name:"鸚鵡",svg:parrotSVG},{key:"sparrow",name:"麻雀",svg:sparrowSVG},{key:"owl",name:"貓頭鷹",svg:owlSVG},
+  {key:"swallow",name:"燕子",svg:swallowSVG},{key:"pigeon",name:"鴿子",svg:pigeonSVG},
+];
+function birdsUnlocked(){ return Math.min(Math.floor((store.maxStreak||0)/3), BIRDS.length); }
+function spawnCritters(){ const box=document.getElementById("critters"); if(!box) return; box.innerHTML="";
+  const list=GROUND_BASE.map(f=>f());
+  GROUND_UNLOCK.forEach((a,i)=>{ if(store.collected["0|"+i]) list.push(a.svg()); });
+  list.forEach((svg,i)=>{ const c=document.createElement("div"); c.className="critter"; c.innerHTML=svg;
+    c.style.animationDuration=(12+i*2.2)+"s"; c.style.animationDelay=(-i*3.2)+"s"; box.appendChild(c); }); }
+function spawnBirds(){ const box=document.getElementById("birds"); if(!box) return; box.innerHTML="";
+  const n=birdsUnlocked();
+  for(let i=0;i<n;i++){ const b=document.createElement("div"); b.className="bird"; b.innerHTML=BIRDS[i].svg();
+    b.style.top=(7+i*10)+"%"; b.style.animationDuration=(17+i*4)+"s"; b.style.animationDelay=(-i*5)+"s"; box.appendChild(b); } }
 function hideLoading(){ const l=document.getElementById("loading"); if(!l) return; l.classList.add("hide"); setTimeout(()=>l.remove(),600); }
 // 筆順動畫（hanzi-writer，自託管資料）
 let hw=null;
@@ -781,8 +888,9 @@ btnBgm.onclick=function(){
 document.getElementById("btnHome").onclick=function(){sClick(); viewHome();};
 
 syncOptBtns();
+updateStreak();
 renderHUD();
-renderBuddy('idle'); spawnCritters(); setTimeout(hideLoading,700);
+renderBuddy('idle'); spawnCritters(); spawnBirds(); setTimeout(hideLoading,700);
 document.getElementById("strokeClose").onclick=()=>document.getElementById("strokeModal").classList.remove("show");
 document.getElementById("strokeReplay").onclick=()=>{ if(hw) hw.animateCharacter(); };
 if(!DATA.grades.length){ elView.innerHTML='<div class="empty">找不到生字資料（data/words.js）</div>'; }
