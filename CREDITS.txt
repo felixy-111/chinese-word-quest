@@ -1,0 +1,16 @@
+生字大冒險 — 開源資源與授權
+================================
+
+程式與美術
+- 角色（方塊小人）、生物（豬/雞）、UI、CSS 材質、音效：自製原創，非 Minecraft 官方素材。
+
+筆順動畫
+- hanzi-writer　MIT License　https://hanziwriter.org
+- hanzi-writer-data　LGPL-3.0 + Arphic Public License（衍生自 Make Me a Hanzi）
+  https://github.com/chanind/hanzi-writer-data
+
+背景音樂
+- spadestars「Minecraft Song」　Pixabay 免版稅授權
+
+生字教材內容（生字範圍/造詞）改寫自康軒國語課本，僅供教學複習；
+本 repo 不含康軒原始教材檔（教師用書、課本 PDF 等）。

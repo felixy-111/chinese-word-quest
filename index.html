@@ -218,6 +218,13 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
   background:radial-gradient(circle at 50% 70%, #fff3b0, #ffb53d 45%, #ff6a00 78%, transparent 85%);
   border-radius:50% 50% 45% 45%/60% 60% 40% 40%; animation:flame .25s ease-in-out infinite alternate;}
 @keyframes flame{from{transform:scaleY(1) scaleX(1); opacity:.88;}to{transform:scaleY(1.18) scaleX(.88); opacity:1;}}
+/* 筆順 modal */
+.smodal{position:fixed; inset:0; z-index:300; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center;}
+.smodal.show{display:flex;}
+.sbox{background:var(--panel); border-radius:10px; padding:18px; text-align:center; box-shadow:6px 6px 0 rgba(0,0,0,.3);}
+.schar{width:220px; height:220px; margin:0 auto; background:#fff; border:2px solid var(--diamond-d); border-radius:8px;
+  background-image:linear-gradient(var(--panelline) 1px,transparent 1px),linear-gradient(90deg,var(--panelline) 1px,transparent 1px); background-size:50% 50%, 50% 50%;}
+.srow{display:flex; gap:10px; margin-top:12px;} .srow .btn{flex:1;}
 </style>
 </head>
 <body>
@@ -226,6 +233,10 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
 <div class="ground"></div>
 <div class="critters" id="critters"></div>
 <div id="buddy"></div>
+<div id="strokeModal" class="smodal"><div class="sbox">
+  <div class="schar" id="strokeTarget"></div>
+  <div class="srow"><button class="btn btn-grass" id="strokeReplay">▶ 重播</button><button class="btn btn-stone" id="strokeClose">關閉</button></div>
+</div></div>
 <div class="wrap">
   <header class="bar">
     <h1>🗺️ 生字大冒險</h1>
@@ -242,6 +253,8 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
 
 <audio id="bgm" loop preload="none" src="audio/bgm.mp3"></audio>
 <script src="data/words.js"></script>
+<script src="hanzi-writer.min.js"></script>
+<script src="data/strokes.js"></script>
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
@@ -399,12 +412,16 @@ function viewStats(){
   const acc= store.stats.quizTotal? Math.round(store.stats.quizOk/store.stats.quizTotal*100):0;
   const achvHTML=ACHV.map(a=>`<div class="achvrow ${store.achv[a.id]?'':'locked'}">
     <span class="ic">${a.ic}</span><div><div class="nm">${a.nm}</div><div class="ds">${a.ds}</div></div></div>`).join("");
+  const weak=allWrong();
+  const weakHTML= weak.length? weak.map(ch=>`<span class="wrongchip" data-ch="${esc(ch)}">${esc(ch)}</span>`).join("") : '<span style="color:#8a7c5a;font-weight:700">目前沒有弱點字，很棒！</span>';
   elView.innerHTML=`<div class="card block" style="text-align:left">
     <div style="text-align:center"><div class="levelup">Lv.${li.lv}　${esc(li.name)}</div>
       <div class="statline">${store.xp} XP ‧ 🔥連續 ${store.streak} 天 ‧ 看過 ${seenCount()} 字 ‧ 抽考正確率 ${acc}%</div></div>
     <div class="field full"><div class="lab">💎 收集圖鑑（每課抽考全對得一塊）</div><div class="gemwall">${cells}</div></div>
+    <div class="field full"><div class="lab">📕 弱點字（抽考錯過的字，點念音）</div><div style="margin-top:6px">${weakHTML}</div></div>
     <div class="field full"><div class="lab">🏅 成就</div>${achvHTML}</div>
     <div class="navrow"><button class="btn btn-stone" id="sback">◀ 返回</button></div></div>`;
+  document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ch);});
   document.getElementById("sback").onclick=()=>{sClick(); viewHome();};
 }
 
@@ -442,6 +459,19 @@ function spawnCritters(){ const box=document.getElementById("critters"); if(!box
   [pigSVG(),chickenSVG(),pigSVG(),chickenSVG()].forEach((svg,i)=>{ const c=document.createElement("div");
     c.className="critter"; c.innerHTML=svg; c.style.animationDuration=(15+i*5)+"s"; c.style.animationDelay=(-i*6)+"s"; box.appendChild(c); }); }
 function hideLoading(){ const l=document.getElementById("loading"); if(!l) return; l.classList.add("hide"); setTimeout(()=>l.remove(),600); }
+// 筆順動畫（hanzi-writer，自託管資料）
+let hw=null;
+function openStroke(char){
+  const m=document.getElementById("strokeModal"), t=document.getElementById("strokeTarget");
+  t.innerHTML=""; m.classList.add("show");
+  if(typeof HanziWriter==="undefined" || !(window.STROKES&&window.STROKES[char])){
+    t.innerHTML='<div style="padding:92px 8px;color:#8a7c5a;font-weight:700">此字暫無筆順資料</div>'; hw=null; return; }
+  hw=HanziWriter.create(t, char, { width:220, height:220, padding:8,
+    charDataLoader:(c)=>window.STROKES[c], showOutline:true,
+    strokeAnimationSpeed:1, delayBetweenStrokes:280, strokeColor:"#1f3a5f", radicalColor:"#c0392b" });
+  hw.animateCharacter();
+}
+function allWrong(){ const set=new Set(); Object.values(store.wrong).forEach(a=>a.forEach(c=>set.add(c))); return [...set]; }
 
 // ====== 首頁 ======
 function viewHome(){
@@ -502,7 +532,8 @@ function renderReview(){
   // 進階補充（成語/詞義/破音）暫時取消，等自修版照片再以那版做
   document.getElementById("sub").innerHTML=`<div class="card block">
     <div class="charrow">
-      <div><div class="char-big kai" id="bigChar">${esc(c.char)}</div><div class="spk">👆 點字念給我聽</div></div>
+      <div><div class="char-big kai" id="bigChar">${esc(c.char)}</div><div class="spk">👆 點字念給我聽</div>
+        <button class="btn btn-diamond" id="strokeBtn" style="font-size:14px;padding:6px 14px;margin-top:8px;width:auto">✍️ 看筆順</button></div>
       <div><div class="zhuyin">${esc(c.zhuyin)}</div></div>
     </div>
     <div class="fields">
@@ -518,6 +549,7 @@ function renderReview(){
     </div>
     <div class="hint">綠色經驗條會記住你看過哪些字</div></div>`;
   document.getElementById("bigChar").onclick=()=>{sClick(); speak(c.say||c.char);};
+  document.getElementById("strokeBtn").onclick=()=>{sClick(); openStroke(c.char);};
   document.getElementById("sentSay").onclick=()=>{sClick(); speak(c.sentence);};
   document.querySelectorAll(".tag").forEach(t=>t.onclick=()=>{sClick(); speak(t.dataset.say);});
   document.getElementById("prev").onclick=()=>{ if(S.ci>0){S.ci--; sClick(); renderReview();} };
@@ -684,6 +716,8 @@ document.getElementById("btnHome").onclick=function(){sClick(); viewHome();};
 syncOptBtns();
 renderHUD();
 renderBuddy('idle'); spawnCritters(); setTimeout(hideLoading,700);
+document.getElementById("strokeClose").onclick=()=>document.getElementById("strokeModal").classList.remove("show");
+document.getElementById("strokeReplay").onclick=()=>{ if(hw) hw.animateCharacter(); };
 if(!DATA.grades.length){ elView.innerHTML='<div class="empty">找不到生字資料（data/words.js）</div>'; }
 else viewHome();
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
