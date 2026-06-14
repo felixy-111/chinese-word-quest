@@ -473,6 +473,39 @@ function openStroke(char){
 }
 function allWrong(){ const set=new Set(); Object.values(store.wrong).forEach(a=>a.forEach(c=>set.add(c))); return [...set]; }
 
+// ====== 使用說明 ======
+function viewHelp(){
+  document.getElementById("crumb").textContent="使用說明";
+  elView.innerHTML=`<div class="card block" style="text-align:left; line-height:1.75">
+    <div style="text-align:center"><div class="levelup" style="font-size:24px">📖 使用說明</div>
+      <div class="statline">康軒國語二年級下學期 ‧ 213 個生字 ‧ 複習＋抽考</div></div>
+    <div class="field full"><div class="lab">🎮 怎麼開始</div>
+      首頁選「年級」→ 選「課」（共 12 關）→ 上方切「📖 複習」或「📝 抽考」。</div>
+    <div class="field full"><div class="lab">📖 複習模式（學生自學）</div>
+      ‧ 每個生字看：注音、部首、筆畫、造詞、造句<br>
+      ‧ 點「大字」念該字；點「造詞 / 造句」念整句（台灣國語發音）<br>
+      ‧ 按「✍️ 看筆順」看一筆一畫怎麼寫（田字格動畫）<br>
+      ‧ 用「◀ 上一個 / 下一個 ▶」換字，看過的字會記進度、得 XP</div>
+    <div class="field full"><div class="lab">📝 抽考模式（老師主導）</div>
+      ‧ 勾選題型：念注音／答部首／答筆畫／聽音寫字／造詞造句<br>
+      ‧ 每題有「生詞提示」（例：ㄊㄢˋ險）幫學生定位是哪個字<br>
+      ‧ 答案被方塊蓋住，<b>老師點一下方塊「挖開」</b>看答案、再點一下蓋回（學生看不到）<br>
+      ‧ 老師按「答對 ✓ / 答錯 ✗」記分；連續答對會「連擊」<br>
+      ‧ 答錯的字自動進「錯題本」，可設「只考錯題本」「隨機出題」</div>
+    <div class="field full"><div class="lab">🏆 闖關獎勵（讓學生想一直玩）</div>
+      ‧ 複習、答對都得 <b>XP</b>，累積<b>升等級</b>（生字見習生 → 大師）<br>
+      ‧ 解<b>成就徽章</b>；每課抽考全對得一塊<b>礦石 💎</b>（集滿 12 塊）<br>
+      ‧ 每天學習累積<b>連續天數 🔥</b></div>
+    <div class="field full"><div class="lab">📊 我的進度</div>
+      點最上面的<b>等級條</b>，可看：等級、抽考正確率、收集圖鑑、<b>弱點字</b>（考錯的字）、成就。</div>
+    <div class="field full"><div class="lab">🔧 右上角小工具</div>
+      🔊 語音開關 ‧ 🎵 音效開關 ‧ 🎶 背景音樂（預設關）‧ 🏠 回首頁</div>
+    <div class="field full"><div class="lab">📱 裝到平板 / 手機</div>
+      用 Safari（或 Chrome）開網址 → 「分享 / 選單」→「加入主畫面」→ 變成 App 圖示，離線也能用。</div>
+    <div class="navrow"><button class="btn btn-grass" id="helpBack">◀ 開始使用</button></div></div>`;
+  document.getElementById("helpBack").onclick=()=>{sClick(); viewHome();};
+}
+
 // ====== 首頁 ======
 function viewHome(){
   document.getElementById("crumb").textContent="選擇年級";
@@ -483,8 +516,10 @@ function viewHome(){
   elView.innerHTML=`<div class="hero">
     <div class="logo"><span class="torch">🔥</span>生字大冒險<span class="torch">🔥</span></div>
     <div class="sub">⛏️ 一起挖出每一課的生字寶藏！</div>
-    <div class="grade-grid">${cards}</div></div>`;
+    <div class="grade-grid">${cards}</div>
+    <div style="margin-top:18px"><button class="btn btn-wood" id="helpBtn">📖 使用說明</button></div></div>`;
   elView.querySelectorAll(".grade-card[data-gi]").forEach(c=>c.onclick=()=>{S.gi=+c.dataset.gi; sPlace(); viewLessons();});
+  document.getElementById("helpBtn").onclick=()=>{sClick(); viewHelp();};
 }
 
 // ====== 課次地圖 ======
