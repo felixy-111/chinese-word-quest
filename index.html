@@ -241,6 +241,19 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
 .schar{width:220px; height:220px; margin:0 auto; background:#fff; border:2px solid var(--diamond-d); border-radius:8px;
   background-image:linear-gradient(var(--panelline) 1px,transparent 1px),linear-gradient(90deg,var(--panelline) 1px,transparent 1px); background-size:50% 50%, 50% 50%;}
 .srow{display:flex; gap:10px; margin-top:12px;} .srow .btn{flex:1;}
+/* 解鎖慶祝彈窗 */
+.umodal{position:fixed; inset:0; z-index:400; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; overflow:hidden;}
+.umodal.show{display:flex;}
+.ubox{background:var(--panel); border:4px solid var(--gold); border-radius:14px; padding:24px 30px; text-align:center;
+  box-shadow:0 0 0 6px rgba(255,216,61,.35), 8px 8px 0 rgba(0,0,0,.3); animation:upop .5s cubic-bezier(.2,1.4,.4,1);}
+@keyframes upop{0%{transform:scale(.3) rotate(-8deg); opacity:0;} 100%{transform:scale(1) rotate(0); opacity:1;}}
+.utitle{font-size:26px; font-weight:900; color:#e6a700; text-shadow:2px 2px 0 var(--dirt-d); letter-spacing:2px;}
+.uanimal{margin:16px auto 8px; animation:ubounce 1s ease infinite; background:#eaf3da; border-radius:12px; padding:10px 22px; display:inline-block; box-shadow:inset 0 0 0 2px #d4e4bc;}
+.uanimal svg{width:120px; height:auto; animation:none;}
+@keyframes ubounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}
+.uname{font-size:24px; font-weight:900; color:var(--ink); margin-bottom:16px;}
+.confetti{position:fixed; top:-20px; width:12px; height:12px; z-index:401; pointer-events:none; animation:confall linear forwards;}
+@keyframes confall{0%{transform:translateY(-20px) rotate(0); opacity:1;} 100%{transform:translateY(106vh) rotate(720deg); opacity:.9;}}
 </style>
 </head>
 <body>
@@ -253,6 +266,12 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
 <div id="strokeModal" class="smodal"><div class="sbox">
   <div class="schar" id="strokeTarget"></div>
   <div class="srow"><button class="btn btn-grass" id="strokeReplay">▶ 重播</button><button class="btn btn-stone" id="strokeClose">關閉</button></div>
+</div></div>
+<div id="unlockModal" class="umodal"><div class="ubox">
+  <div class="utitle">🎉 解鎖新夥伴！</div>
+  <div class="uanimal" id="unlockAnimal"></div>
+  <div class="uname" id="unlockName"></div>
+  <button class="btn btn-gold" id="unlockClose">太棒了！</button>
 </div></div>
 <div class="wrap">
   <header class="bar">
@@ -413,9 +432,18 @@ function renderHUD(){
   el.onclick=viewStats;
 }
 // 收一塊礦石（該課抽考全對）
-function collectGem(){ const k=wkey(); if(store.collected[k]) return; store.collected[k]=1; saveStore(); sGem();
-  const a=GROUND_UNLOCK[S.li]; toast("🐾 解鎖新夥伴："+(a?a.name:"")+"！","gem"); renderHUD(); spawnCritters();
+function collectGem(){ const k=wkey(); if(store.collected[k]) return; store.collected[k]=1; saveStore();
+  const a=GROUND_UNLOCK[S.li]; if(a) showUnlock(a); renderHUD(); spawnCritters();
   if(collectedCount()>=totalLessons()) unlock("collectAll"); }
+function showUnlock(item){ const m=document.getElementById("unlockModal"); if(!m) return;
+  document.getElementById("unlockAnimal").innerHTML=item.svg();
+  document.getElementById("unlockName").textContent=item.name;
+  m.classList.add("show"); sWin(); setTimeout(sAchv,180); confetti(); }
+function confetti(){ const cs=["#ffd83d","#6abe30","#3fd0e0","#e23b3b","#b87de0","#ff9a3d"];
+  for(let i=0;i<44;i++){ const d=document.createElement("div"); d.className="confetti";
+    d.style.left=(Math.random()*100)+"vw"; d.style.background=cs[i%cs.length];
+    d.style.animationDuration=(1.5+Math.random()*1.6)+"s"; d.style.animationDelay=(Math.random()*0.3)+"s";
+    document.body.appendChild(d); setTimeout(()=>d.remove(),3400); } }
 // streak（每天首次學習）
 function updateStreak(){ const today=new Date().toLocaleDateString('en-CA');
   if(store.lastDay!==today){ const y=new Date(Date.now()-864e5).toLocaleDateString('en-CA');
@@ -423,7 +451,7 @@ function updateStreak(){ const today=new Date().toLocaleDateString('en-CA');
     store.streak=(store.lastDay===y)?store.streak+1:1;
     store.maxStreak=Math.max(store.maxStreak||0, store.streak); store.lastDay=today; saveStore();
     if(store.streak>=7) unlock("streak7");
-    if(birdsUnlocked()>before){ const b=BIRDS[birdsUnlocked()-1]; setTimeout(()=>toast("🕊️ 連續學習解鎖："+(b?b.name:"天空夥伴")+"！",""),900); }
+    if(birdsUnlocked()>before){ const b=BIRDS[birdsUnlocked()-1]; if(b) setTimeout(()=>showUnlock(b),1400); }
   } else { store.maxStreak=Math.max(store.maxStreak||0, store.streak); } }
 // 我的進度頁（第一波簡版；第三波再加弱點字/筆順）
 function viewStats(){
@@ -892,6 +920,7 @@ updateStreak();
 renderHUD();
 renderBuddy('idle'); spawnCritters(); spawnBirds(); setTimeout(hideLoading,700);
 document.getElementById("strokeClose").onclick=()=>document.getElementById("strokeModal").classList.remove("show");
+document.getElementById("unlockClose").onclick=()=>{ sClick(); document.getElementById("unlockModal").classList.remove("show"); };
 document.getElementById("strokeReplay").onclick=()=>{ if(hw) hw.animateCharacter(); };
 if(!DATA.grades.length){ elView.innerHTML='<div class="empty">找不到生字資料（data/words.js）</div>'; }
 else viewHome();
