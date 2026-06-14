@@ -172,6 +172,27 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
   margin:4px; font-size:22px; font-weight:800; cursor:pointer; font-family:'BiauKai',serif;}
 .hint{font-size:13px; color:#8a7c5a; text-align:center; margin-top:8px;}
 .empty{text-align:center; color:#8a7c5a; padding:30px; font-weight:700;}
+/* ── 遊戲化 ── */
+.topxp{display:flex; align-items:center; gap:8px; background:rgba(0,0,0,.16); border-radius:8px; padding:6px 10px; margin-bottom:12px; cursor:pointer; flex-wrap:wrap;}
+.topxp .lv{background:var(--gold); color:#5a4500; font-weight:900; padding:2px 8px; border-radius:6px; font-size:13px; white-space:nowrap;}
+.topxp .xpbar{flex:1; min-width:80px; height:12px; background:#3a3a3a; border-radius:3px; overflow:hidden; border:2px solid #222;}
+.topxp .xpbar i{display:block; height:100%; background:repeating-linear-gradient(90deg,var(--exp) 0 6px,var(--exp-d) 6px 8px); transition:width .3s;}
+.topxp .mini{font-weight:800; color:var(--ink); font-size:13px; white-space:nowrap;}
+.toast{position:fixed; top:14px; right:-380px; max-width:320px; background:#2b2118; color:#fff; border:3px solid var(--gold);
+  border-radius:8px; padding:12px 16px; font-weight:800; z-index:200; box-shadow:4px 4px 0 rgba(0,0,0,.3);
+  transition:right .4s cubic-bezier(.2,1.2,.4,1);}
+.toast.show{right:14px;}
+.toast.level{border-color:var(--exp);} .toast.gem{border-color:var(--diamond);}
+.combopop{position:fixed; left:50%; top:38%; z-index:150; pointer-events:none; font-size:38px; font-weight:900;
+  color:var(--gold); text-shadow:3px 3px 0 var(--dirt-d), 0 0 8px #ffb53d; opacity:0; animation:combopop .75s ease forwards;}
+@keyframes combopop{0%{transform:translate(-50%,-50%) scale(.4); opacity:0;} 35%{transform:translate(-50%,-50%) scale(1.25); opacity:1;} 100%{transform:translate(-50%,-95%) scale(1); opacity:0;}}
+.gemwall{display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin:8px 0;}
+.gem{aspect-ratio:1; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:22px;
+  background:#cfc4a8; color:#fff; box-shadow: inset 2px 2px 0 rgba(255,255,255,.3), inset -2px -2px 0 rgba(0,0,0,.2);}
+.gem.got{background:linear-gradient(135deg,var(--diamond),var(--diamond-d));}
+.achvrow{display:flex; align-items:center; gap:10px; background:#fff; border:2px solid var(--panelline); border-radius:6px; padding:8px 10px; margin-bottom:6px;}
+.achvrow.locked{opacity:.45; filter:grayscale(1);}
+.achvrow .ic{font-size:24px;} .achvrow .nm{font-weight:800;} .achvrow .ds{font-size:12px; color:#8a7c5a;}
 </style>
 </head>
 <body>
@@ -187,6 +208,7 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
     <button class="iconbtn" id="btnBgm" title="背景音樂（預設關）">🎶</button>
     <button class="iconbtn" id="btnHome" title="回首頁">🏠</button>
   </header>
+  <div class="topxp" id="topxp"></div>
   <div id="view"></div>
 </div>
 
@@ -202,6 +224,12 @@ function saveStore(){ localStorage.setItem(LS_KEY, JSON.stringify(store)); }
 store.seen = store.seen || {};
 store.wrong = store.wrong || {};
 store.opt = store.opt || {voice:true, sound:true};
+store.xp = store.xp || 0;
+store.achv = store.achv || {};            // 成就 id -> 1
+store.collected = store.collected || {};  // "gi|li" -> 1（該課抽考全對得礦石）
+store.streak = store.streak || 0;
+store.lastDay = store.lastDay || "";
+store.stats = store.stats || {quizOk:0, quizTotal:0};
 
 let S = {gi:0, li:0, mode:"review", ci:0, quiz:null};
 
@@ -264,6 +292,9 @@ const sNo  =()=>{ tone(180,.22,"sawtooth",.08); tone(120,.22,"sawtooth",.06,.05)
 const sDig =()=>{ for(let i=0;i<3;i++){ noise(.05,.05,i*.06); tone(90+i*15,.05,"square",.04,i*.06);} }; // 挖掘
 const sWin =()=>{ [523,659,784,1046,1318].forEach((f,i)=>tone(f,.14,"square",.06,i*.10)); };          // 升級
 const sBreak=()=>{ tone(130,.12,"square",.09); tone(70,.16,"sawtooth",.06,.02); noise(.2,.10); setTimeout(()=>{noise(.08,.05);},70); }; // 破壞方塊
+const sAchv=()=>{ [880,1175,1568].forEach((f,i)=>tone(f,.12,"sine",.06,i*.08)); };           // 成就解鎖
+const sComboTone=(n)=>{ const b=520+Math.min(n,14)*38; tone(b,.10,"square",.06); tone(b*1.5,.08,"sine",.04,.04); }; // 連擊漸高
+const sGem=()=>{ [1047,1319,1568,2093].forEach((f,i)=>tone(f,.10,"sine",.05,i*.05)); };       // 撿礦石
 
 const grade=()=>DATA.grades[S.gi];
 const lesson=()=>grade().lessons[S.li];
@@ -287,6 +318,66 @@ function spawnDebris(el){ // 破壞方塊：往上噴 + 左右大範圍散開 + 
 function hintWord(c){
   const w=(c.words||[]).find(x=>x.includes(c.char)) || c.char;
   return esc(w).split(c.char).join('<span class="zy">'+esc(c.zhuyin)+'</span>');
+}
+
+// ====== 遊戲化：等級 / XP / 成就 / 收集 / streak ======
+const LEVELS=[{xp:0,name:"生字見習生"},{xp:100,name:"生字學徒"},{xp:250,name:"生字小高手"},{xp:500,name:"生字達人"},{xp:900,name:"生字大師"}];
+function levelInfo(){ let i=0; for(let k=0;k<LEVELS.length;k++) if(store.xp>=LEVELS[k].xp) i=k;
+  const cur=LEVELS[i], nx=LEVELS[i+1]; return {lv:i+1,name:cur.name,base:cur.xp,next:nx?nx.xp:null,isMax:!nx}; }
+function addXP(n){ const b=levelInfo().lv; store.xp+=n; saveStore(); const a=levelInfo(); renderHUD();
+  if(a.lv>b){ sWin(); toast("⬆️ 升級！Lv."+a.lv+"　"+a.name,"level"); } }
+const ACHV=[
+  {id:"first_review",ic:"📖",nm:"初次探險",ds:"複習完一整課"},
+  {id:"perfect",ic:"🏆",nm:"完美闖關",ds:"一課抽考全對"},
+  {id:"combo10",ic:"🔥",nm:"連擊高手",ds:"連對 10 題"},
+  {id:"see100",ic:"💯",nm:"識字百",ds:"累積看過 100 字"},
+  {id:"streak7",ic:"📅",nm:"七日勤學",ds:"連續學習 7 天"},
+  {id:"collectAll",ic:"💎",nm:"生字大師",ds:"收集滿全部礦石"},
+];
+function unlock(id){ if(store.achv[id]) return; const a=ACHV.find(x=>x.id===id); if(!a) return;
+  store.achv[id]=1; saveStore(); sAchv(); toast(a.ic+" 成就解鎖："+a.nm,""); renderHUD(); }
+function toast(text,kind){ const t=document.createElement("div"); t.className="toast "+(kind||"");
+  t.textContent=text; document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add("show"));
+  setTimeout(()=>{t.classList.remove("show"); setTimeout(()=>t.remove(),450);},3200); }
+function comboPop(n){ const d=document.createElement("div"); d.className="combopop"; d.textContent="連擊 ×"+n;
+  document.body.appendChild(d); setTimeout(()=>d.remove(),760); }
+function seenCount(){ return Object.keys(store.seen).length; }
+function collectedCount(){ return Object.keys(store.collected).length; }
+function totalLessons(){ return DATA.grades.reduce((s,g)=>s+g.lessons.length,0); }
+function renderHUD(){
+  const li=levelInfo(), el=document.getElementById("topxp"); if(!el) return;
+  let pct=100; if(!li.isMax) pct=Math.round((store.xp-li.base)/(li.next-li.base)*100);
+  el.innerHTML=`<span class="lv">Lv.${li.lv} ${esc(li.name)}</span>
+    <span class="xpbar"><i style="width:${pct}%"></i></span>
+    <span class="mini">${store.xp} XP</span><span class="mini">🔥${store.streak}天</span>
+    <span class="mini">💎${collectedCount()}/${totalLessons()}</span>`;
+  el.onclick=viewStats;
+}
+// 收一塊礦石（該課抽考全對）
+function collectGem(){ const k=wkey(); if(store.collected[k]) return; store.collected[k]=1; saveStore(); sGem();
+  toast("💎 獲得礦石！"+grade().lessons[S.li].title,"gem"); renderHUD();
+  if(collectedCount()>=totalLessons()) unlock("collectAll"); }
+// streak（每天首次學習）
+(function updateStreak(){ const today=new Date().toLocaleDateString('en-CA');
+  if(store.lastDay!==today){ const y=new Date(Date.now()-864e5).toLocaleDateString('en-CA');
+    store.streak=(store.lastDay===y)?store.streak+1:1; store.lastDay=today; saveStore();
+    if(store.streak>=7) unlock("streak7"); } })();
+// 我的進度頁（第一波簡版；第三波再加弱點字/筆順）
+function viewStats(){
+  document.getElementById("crumb").textContent="我的進度";
+  const li=levelInfo(), g=DATA.grades[0];
+  const cells=g.lessons.map((l,i)=>{ const got=store.collected["0|"+i];
+    return `<div class="gem ${got?'got':''}" title="${esc(l.title)}">${got?'💎':'▫'}</div>`; }).join("");
+  const acc= store.stats.quizTotal? Math.round(store.stats.quizOk/store.stats.quizTotal*100):0;
+  const achvHTML=ACHV.map(a=>`<div class="achvrow ${store.achv[a.id]?'':'locked'}">
+    <span class="ic">${a.ic}</span><div><div class="nm">${a.nm}</div><div class="ds">${a.ds}</div></div></div>`).join("");
+  elView.innerHTML=`<div class="card block" style="text-align:left">
+    <div style="text-align:center"><div class="levelup">Lv.${li.lv}　${esc(li.name)}</div>
+      <div class="statline">${store.xp} XP ‧ 🔥連續 ${store.streak} 天 ‧ 看過 ${seenCount()} 字 ‧ 抽考正確率 ${acc}%</div></div>
+    <div class="field full"><div class="lab">💎 收集圖鑑（每課抽考全對得一塊）</div><div class="gemwall">${cells}</div></div>
+    <div class="field full"><div class="lab">🏅 成就</div>${achvHTML}</div>
+    <div class="navrow"><button class="btn btn-stone" id="sback">◀ 返回</button></div></div>`;
+  document.getElementById("sback").onclick=()=>{sClick(); viewHome();};
 }
 
 // ====== 首頁 ======
@@ -342,7 +433,8 @@ function viewStudy(){
 // ---- 複習 ----
 function renderReview(){
   const l=lesson(), c=l.chars[S.ci];
-  store.seen[S.gi+"|"+S.li+"|"+c.char]=1; saveStore();
+  const sk=S.gi+"|"+S.li+"|"+c.char;
+  if(!store.seen[sk]){ store.seen[sk]=1; saveStore(); addXP(2); if(seenCount()>=100) unlock("see100"); }
   const words=c.words.map(w=>`<span class="tag" data-say="${esc(w)}">${esc(w)}</span>`).join("");
   // 進階補充（成語/詞義/破音）暫時取消，等自修版照片再以那版做
   document.getElementById("sub").innerHTML=`<div class="card block">
@@ -368,7 +460,9 @@ function renderReview(){
   document.getElementById("prev").onclick=()=>{ if(S.ci>0){S.ci--; sClick(); renderReview();} };
   document.getElementById("next").onclick=()=>{
     if(S.ci<l.chars.length-1){S.ci++; sClick(); renderReview();}
-    else{ sWin(); viewLessons(); }
+    else{ // 看完整課
+      if(l.chars.every(x=>store.seen[S.gi+"|"+S.li+"|"+x.char])) unlock("first_review");
+      sWin(); viewLessons(); }
   };
   speak(c.say||c.char);
 }
@@ -455,8 +549,16 @@ function renderQuizCard(){
       setTimeout(()=>{ if(broken) cover.style.display="none"; }, 360);
     }
   });
-  document.getElementById("ok").onclick=()=>{Q.ok++; sOk(); removeWrong(c.char); Q.idx++; renderQuizCard();};
-  document.getElementById("no").onclick=()=>{Q.no++; sNo(); addWrong(c.char); Q.idx++; renderQuizCard();};
+  document.getElementById("ok").onclick=()=>{
+    Q.ok++; Q.combo=(Q.combo||0)+1; store.stats.quizOk++; store.stats.quizTotal++; saveStore();
+    sComboTone(Q.combo); if(Q.combo>=2) comboPop(Q.combo);
+    addXP(5); if(Q.combo>=10) unlock("combo10");
+    removeWrong(c.char); Q.idx++; renderQuizCard();
+  };
+  document.getElementById("no").onclick=()=>{
+    Q.no++; Q.combo=0; store.stats.quizTotal++; saveStore();
+    sNo(); addWrong(c.char); Q.idx++; renderQuizCard();
+  };
   document.getElementById("stop").onclick=()=>renderQuizDone();
 }
 function addWrong(ch){ const k=wkey(); store.wrong[k]=store.wrong[k]||[]; if(!store.wrong[k].includes(ch))store.wrong[k].push(ch); saveStore(); }
@@ -466,6 +568,7 @@ function removeWrong(ch){ const k=wkey(); if(store.wrong[k]) store.wrong[k]=stor
 function renderQuizDone(){
   const Q=S.quiz, total=Q.ok+Q.no, pct=total?Math.round(Q.ok/total*100):0;
   sWin();
+  if(total>0 && pct===100){ unlock("perfect"); collectGem(); }
   const wlist=store.wrong[wkey()]||[], lc=lesson().chars;
   const chips=wlist.length? wlist.map(ch=>{const cc=lc.find(x=>x.char===ch); const sy=cc?(cc.say||ch):ch;
       return `<span class="wrongchip" data-ch="${esc(ch)}" data-say="${esc(sy)}">${esc(ch)}</span>`;}).join("")
@@ -516,6 +619,7 @@ btnBgm.onclick=function(){
 document.getElementById("btnHome").onclick=function(){sClick(); viewHome();};
 
 syncOptBtns();
+renderHUD();
 if(!DATA.grades.length){ elView.innerHTML='<div class="empty">找不到生字資料（data/words.js）</div>'; }
 else viewHome();
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
