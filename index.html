@@ -193,11 +193,39 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
 .achvrow{display:flex; align-items:center; gap:10px; background:#fff; border:2px solid var(--panelline); border-radius:6px; padding:8px 10px; margin-bottom:6px;}
 .achvrow.locked{opacity:.45; filter:grayscale(1);}
 .achvrow .ic{font-size:24px;} .achvrow .nm{font-weight:800;} .achvrow .ds{font-size:12px; color:#8a7c5a;}
+/* ── 第二波：視覺沈浸 ── */
+#loading{position:fixed; inset:0; z-index:500; background:linear-gradient(180deg,#16213e,#0f3320);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; transition:opacity .5s;}
+#loading.hide{opacity:0; pointer-events:none;}
+#loading .lblock{width:54px; height:54px; background:linear-gradient(135deg,var(--grass),var(--grass-d));
+  box-shadow: inset 4px 4px 0 rgba(255,255,255,.3), inset -4px -4px 0 rgba(0,0,0,.3); border-radius:6px; animation:lspin 1.2s ease-in-out infinite;}
+@keyframes lspin{0%,100%{transform:rotate(0) scale(1);}50%{transform:rotate(180deg) scale(1.15);}}
+#loading .ltxt{color:#fff; font-size:26px; font-weight:900; letter-spacing:2px; text-shadow:2px 2px 0 #000;}
+#loading .lhint{color:#9fe6b0; font-size:14px; font-weight:700;}
+.critters{position:fixed; left:0; right:0; bottom:5px; height:40px; z-index:0; pointer-events:none; overflow:hidden;}
+.critter{position:absolute; bottom:0; left:-50px; animation:walk linear infinite;}
+@keyframes walk{ from{transform:translateX(-50px);} to{transform:translateX(102vw);} }
+.critter .hop{display:block; animation:hop .5s ease-in-out infinite;}
+@keyframes hop{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+#buddy{position:fixed; right:8px; bottom:8px; z-index:5; pointer-events:none; animation:bob 2.6s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+#buddy.happy{animation:cheer .55s ease 2;}
+@keyframes cheer{0%,100%{transform:translateY(0) rotate(0);}25%{transform:translateY(-14px) rotate(-7deg);}75%{transform:translateY(-14px) rotate(7deg);}}
+#buddy.sad{animation:shake .42s ease 2;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+.torch2{display:inline-block; width:8px; height:22px; background:var(--wood); position:relative; vertical-align:middle; border-radius:2px; margin:0 10px;}
+.torch2::before{content:""; position:absolute; top:-11px; left:-4px; width:16px; height:17px;
+  background:radial-gradient(circle at 50% 70%, #fff3b0, #ffb53d 45%, #ff6a00 78%, transparent 85%);
+  border-radius:50% 50% 45% 45%/60% 60% 40% 40%; animation:flame .25s ease-in-out infinite alternate;}
+@keyframes flame{from{transform:scaleY(1) scaleX(1); opacity:.88;}to{transform:scaleY(1.18) scaleX(.88); opacity:1;}}
 </style>
 </head>
 <body>
+<div id="loading"><div class="lblock"></div><div class="ltxt">🗺️ 生字大冒險</div><div class="lhint">載入中… ⛏️</div></div>
 <div class="sky" id="sky"></div>
 <div class="ground"></div>
+<div class="critters" id="critters"></div>
+<div id="buddy"></div>
 <div class="wrap">
   <header class="bar">
     <h1>🗺️ 生字大冒險</h1>
@@ -380,6 +408,41 @@ function viewStats(){
   document.getElementById("sback").onclick=()=>{sClick(); viewHome();};
 }
 
+// ====== 第二波：角色 / 生物 / 載入畫面（全自製像素，非 Minecraft 官方美術）======
+function buddySVG(mood){
+  const eyes = mood==='sad'
+    ? '<rect x="5" y="4" width="1.4" height="1.4"/><rect x="9.6" y="4" width="1.4" height="1.4"/><rect x="12.2" y="3" width="1.5" height="2.2" fill="#7ec8ff"/>'
+    : '<rect x="5" y="4" width="1.4" height="1.4"/><rect x="9.6" y="4" width="1.4" height="1.4"/>';
+  const mouth = mood==='happy' ? '<rect x="6.4" y="6" width="3.2" height="1.1" fill="#a33"/>'
+    : mood==='sad' ? '<rect x="6.6" y="6.7" width="2.8" height="1" fill="#a33"/>'
+    : '<rect x="7" y="6.3" width="2" height="1" fill="#a33"/>';
+  const arms = mood==='happy'
+    ? '<rect x="2" y="8.5" width="2.3" height="3" fill="#f1c79b"/><rect x="11.7" y="8.5" width="2.3" height="3" fill="#f1c79b"/>'
+    : '<rect x="2" y="11" width="2.3" height="4" fill="#f1c79b"/><rect x="11.7" y="11" width="2.3" height="4" fill="#f1c79b"/>';
+  return `<svg viewBox="0 0 16 22" width="60" height="82" shape-rendering="crispEdges">
+    <rect x="4" y="0" width="8" height="2.4" fill="#5a3a1a"/>
+    <rect x="4" y="2" width="8" height="6" fill="#f1c79b"/>${eyes}${mouth}
+    <rect x="4" y="8" width="8" height="7" fill="#3a9d5d"/>${arms}
+    <rect x="5" y="15" width="2.6" height="5" fill="#3a5a8a"/><rect x="8.4" y="15" width="2.6" height="5" fill="#3a5a8a"/></svg>`;
+}
+function renderBuddy(mood){ const b=document.getElementById("buddy"); if(b) b.innerHTML=buddySVG(mood||'idle'); }
+function buddyReact(mood){ const b=document.getElementById("buddy"); if(!b) return;
+  b.innerHTML=buddySVG(mood); b.classList.remove("happy","sad"); void b.offsetWidth; b.classList.add(mood);
+  setTimeout(()=>{ b.classList.remove("happy","sad"); renderBuddy('idle'); }, 1100); }
+function pigSVG(){ return `<svg class="hop" viewBox="0 0 16 12" width="42" height="32" shape-rendering="crispEdges">
+  <rect x="2" y="3" width="12" height="7" fill="#f0a8b8"/><rect x="10.5" y="2" width="5.5" height="6" fill="#f0a8b8"/>
+  <rect x="14" y="4" width="2" height="3" fill="#e088a0"/><rect x="12" y="2.6" width="1" height="1" fill="#7a3a4a"/>
+  <rect x="3" y="10" width="2" height="2" fill="#d090a0"/><rect x="10" y="10" width="2" height="2" fill="#d090a0"/></svg>`; }
+function chickenSVG(){ return `<svg class="hop" viewBox="0 0 14 14" width="34" height="34" shape-rendering="crispEdges">
+  <rect x="3" y="5" width="7" height="6" fill="#fff"/><rect x="8" y="2" width="4" height="4" fill="#fff"/>
+  <rect x="9" y="0.4" width="2" height="2" fill="#e23b3b"/><rect x="11.5" y="3.4" width="2.2" height="1.5" fill="#f5a623"/>
+  <rect x="9.5" y="3" width="1" height="1" fill="#333"/>
+  <rect x="4.2" y="11" width="1.3" height="2.6" fill="#f5a623"/><rect x="7" y="11" width="1.3" height="2.6" fill="#f5a623"/></svg>`; }
+function spawnCritters(){ const box=document.getElementById("critters"); if(!box||box.children.length) return;
+  [pigSVG(),chickenSVG(),pigSVG(),chickenSVG()].forEach((svg,i)=>{ const c=document.createElement("div");
+    c.className="critter"; c.innerHTML=svg; c.style.animationDuration=(15+i*5)+"s"; c.style.animationDelay=(-i*6)+"s"; box.appendChild(c); }); }
+function hideLoading(){ const l=document.getElementById("loading"); if(!l) return; l.classList.add("hide"); setTimeout(()=>l.remove(),600); }
+
 // ====== 首頁 ======
 function viewHome(){
   document.getElementById("crumb").textContent="選擇年級";
@@ -553,11 +616,11 @@ function renderQuizCard(){
     Q.ok++; Q.combo=(Q.combo||0)+1; store.stats.quizOk++; store.stats.quizTotal++; saveStore();
     sComboTone(Q.combo); if(Q.combo>=2) comboPop(Q.combo);
     addXP(5); if(Q.combo>=10) unlock("combo10");
-    removeWrong(c.char); Q.idx++; renderQuizCard();
+    buddyReact('happy'); removeWrong(c.char); Q.idx++; renderQuizCard();
   };
   document.getElementById("no").onclick=()=>{
     Q.no++; Q.combo=0; store.stats.quizTotal++; saveStore();
-    sNo(); addWrong(c.char); Q.idx++; renderQuizCard();
+    sNo(); buddyReact('sad'); addWrong(c.char); Q.idx++; renderQuizCard();
   };
   document.getElementById("stop").onclick=()=>renderQuizDone();
 }
@@ -620,6 +683,7 @@ document.getElementById("btnHome").onclick=function(){sClick(); viewHome();};
 
 syncOptBtns();
 renderHUD();
+renderBuddy('idle'); spawnCritters(); setTimeout(hideLoading,700);
 if(!DATA.grades.length){ elView.innerHTML='<div class="empty">找不到生字資料（data/words.js）</div>'; }
 else viewHome();
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
