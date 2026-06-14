@@ -403,7 +403,7 @@ const LEVELS=[{xp:0,name:"生字見習生"},{xp:100,name:"生字學徒"},{xp:250
 function levelInfo(){ let i=0; for(let k=0;k<LEVELS.length;k++) if(store.xp>=LEVELS[k].xp) i=k;
   const cur=LEVELS[i], nx=LEVELS[i+1]; return {lv:i+1,name:cur.name,base:cur.xp,next:nx?nx.xp:null,isMax:!nx}; }
 function addXP(n){ const b=levelInfo().lv; store.xp+=n; saveStore(); const a=levelInfo(); renderHUD();
-  if(a.lv>b){ sWin(); toast("⬆️ 升級！Lv."+a.lv+"　"+a.name,"level"); } }
+  if(a.lv>b){ sWin(); toast("⬆️ 升級！Lv."+a.lv+"　"+a.name+" ‧ 換上新裝備！","level"); renderBuddy('idle'); } }
 const ACHV=[
   {id:"first_review",ic:"📖",nm:"初次探險",ds:"複習完一整課"},
   {id:"perfect",ic:"🏆",nm:"完美闖關",ds:"一課抽考全對"},
@@ -481,6 +481,8 @@ function viewStats(){
 
 // ====== 第二波：角色 / 生物 / 載入畫面（全自製像素，非 Minecraft 官方美術）======
 function buddySVG(mood){
+  const lv=Math.min((typeof levelInfo==='function'?levelInfo().lv:1),5);
+  const body={1:"#3a9d5d",2:"#3a7bd0",3:"#8a4fd0",4:"#2bb3c8",5:"#f0b81e"}[lv];
   const eyes = mood==='sad'
     ? '<rect x="5" y="4" width="1.4" height="1.4"/><rect x="9.6" y="4" width="1.4" height="1.4"/><rect x="12.2" y="3" width="1.5" height="2.2" fill="#7ec8ff"/>'
     : '<rect x="5" y="4" width="1.4" height="1.4"/><rect x="9.6" y="4" width="1.4" height="1.4"/>';
@@ -490,10 +492,20 @@ function buddySVG(mood){
   const arms = mood==='happy'
     ? '<rect x="2" y="8.5" width="2.3" height="3" fill="#f1c79b"/><rect x="11.7" y="8.5" width="2.3" height="3" fill="#f1c79b"/>'
     : '<rect x="2" y="11" width="2.3" height="4" fill="#f1c79b"/><rect x="11.7" y="11" width="2.3" height="4" fill="#f1c79b"/>';
-  return `<svg viewBox="0 0 16 22" width="60" height="82" shape-rendering="crispEdges">
+  let cape = lv>=3 ? '<rect x="2.3" y="8" width="11.4" height="8" fill="'+(lv>=5?"#ffce3d":"#b53225")+'"/>' : '';
+  let head='';
+  if(lv===5) head='<rect x="4" y="-1.5" width="8" height="2" fill="#ffd83d"/><rect x="4" y="-3.2" width="1.8" height="2" fill="#ffd83d"/><rect x="7.1" y="-3.6" width="1.8" height="2.4" fill="#ffd83d"/><rect x="10.2" y="-3.2" width="1.8" height="2" fill="#ffd83d"/>';
+  else if(lv===4) head='<rect x="3.3" y="-1" width="9.4" height="3.5" fill="#2bb3c8"/><rect x="3.3" y="-1" width="9.4" height="1" fill="#7fe6f2"/>';
+  else if(lv===3) head='<rect x="2.3" y="-0.3" width="11.4" height="1.6" fill="#5a3414"/><rect x="4" y="-2.5" width="8" height="2.5" fill="#7a4a20"/>';
+  else if(lv===2) head='<rect x="3.5" y="0.9" width="9" height="1.4" fill="#d24b3e"/>';
+  let tool = lv>=4 ? '<rect x="13.6" y="4" width="1.5" height="9" fill="#c8d0d4"/><rect x="12.6" y="3" width="3.5" height="2.4" fill="#3fd0e0"/>' : '';
+  return `<svg viewBox="0 -4 16 26" width="60" height="98" shape-rendering="crispEdges">
+    ${cape}
     <rect x="4" y="0" width="8" height="2.4" fill="#5a3a1a"/>
     <rect x="4" y="2" width="8" height="6" fill="#f1c79b"/>${eyes}${mouth}
-    <rect x="4" y="8" width="8" height="7" fill="#3a9d5d"/>${arms}
+    ${head}
+    <rect x="4" y="8" width="8" height="7" fill="${body}"/>${arms}
+    ${tool}
     <rect x="5" y="15" width="2.6" height="5" fill="#3a5a8a"/><rect x="8.4" y="15" width="2.6" height="5" fill="#3a5a8a"/></svg>`;
 }
 function renderBuddy(mood){ const b=document.getElementById("buddy"); if(b) b.innerHTML=buddySVG(mood||'idle'); }
@@ -665,6 +677,7 @@ function viewHelp(){
       ‧ 答錯的字自動進「錯題本」，可設「只考錯題本」「隨機出題」</div>
     <div class="field full"><div class="lab">🏆 闖關獎勵（讓學生想一直玩）</div>
       ‧ 複習、答對都得 <b>XP</b>，累積<b>升等級</b>（生字見習生 → 大師）<br>
+      ‧ <b>升級時主角會換上新裝備</b>（頭帶 → 帽子 → 鑽石盔甲 → 皇冠，越來越神氣）<br>
       ‧ <b>每課抽考全對 → 解鎖一隻小動物</b>（會跳慶祝彈窗 🎉 ＋ 彩帶！）<br>
       ‧ <b>連續學習每 3 天 → 解鎖一隻天空的鳥</b>（永久保留，斷了不會掉）<br>
       ‧ 解<b>成就徽章</b>；連續學習累積<b>天數 🔥</b></div>
