@@ -316,6 +316,7 @@ store.stats = store.stats || {quizOk:0, quizTotal:0};
 store.maxStreak = store.maxStreak || 0;
 store.rares = store.rares || {};          // 里程碑稀有解鎖： key -> 1
 if(store.daysCount===undefined) store.daysCount = store.maxStreak||0;  // 累積學習天數（不需連續）
+store.lessonStats = store.lessonStats || {};   // 每課抽考 "gi|li" -> {ok,total}
 
 let S = {gi:0, li:0, mode:"review", ci:0, quiz:null, range:null};
 
@@ -491,9 +492,29 @@ function viewStats(){
     <div class="field full"><div class="lab">✨ 稀有生物（範圍挑戰全對解鎖）</div><div class="zoowall">${rareCells}</div></div>
     <div class="field full"><div class="lab">📕 弱點字（抽考錯過的字，點念音）</div><div style="margin-top:6px">${weakHTML}</div></div>
     <div class="field full"><div class="lab">🏅 成就</div>${achvHTML}</div>
-    <div class="navrow"><button class="btn btn-stone" id="sback">◀ 返回</button></div></div>`;
+    <div class="navrow"><button class="btn btn-diamond" id="reportBtn">📊 各課表現</button><button class="btn btn-stone" id="sback">◀ 返回</button></div></div>`;
   document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ch);});
+  document.getElementById("reportBtn").onclick=()=>{sClick(); viewReport();};
   document.getElementById("sback").onclick=()=>{sClick(); viewHome();};
+}
+// ====== 各課表現（老師診斷：每課正確率 + 不熟的字 + 不熟部首）======
+function viewReport(){
+  document.getElementById("crumb").textContent="各課表現";
+  const g=grade();
+  const rows=g.lessons.map((l,i)=>{ const k=S.gi+"|"+i, st=store.lessonStats[k];
+    const acc= st&&st.total? Math.round(st.ok/st.total*100):null;
+    const wrong=store.wrong[k]||[];
+    const wchips=wrong.length? wrong.map(ch=>`<span class="wrongchip" data-ch="${esc(ch)}">${esc(ch)}</span>`).join("") : '<span style="color:#8a7c5a">—（全對或未考）</span>';
+    const rads={}; wrong.forEach(ch=>{ const c=l.chars.find(x=>x.char===ch); if(c) rads[c.radical]=(rads[c.radical]||0)+1; });
+    const radList=Object.keys(rads).length? Object.entries(rads).sort((a,b)=>b[1]-a[1]).map(e=>`<span class="tag">${esc(e[0])}部 ×${e[1]}</span>`).join("") : '<span style="color:#8a7c5a">—</span>';
+    return `<div class="field full"><div class="lab">第${l.id}課 ${esc(l.title)} ‧ 正確率 ${acc===null?'尚未抽考':acc+'%'}</div>
+      <div style="font-size:13px;margin-top:4px"><b>不熟的字</b>（點念音）：${wchips}</div>
+      <div class="tagrow" style="margin-top:4px"><b style="font-size:13px">不熟部首：</b>${radList}</div></div>`; }).join("");
+  elView.innerHTML=`<div class="card block" style="text-align:left">
+    <div class="q-prompt">📊 各課表現（老師診斷用）</div>${rows}
+    <div class="navrow"><button class="btn btn-stone" id="rpBack">◀ 返回</button></div></div>`;
+  document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ch);});
+  document.getElementById("rpBack").onclick=()=>{sClick(); viewStats();};
 }
 
 // ====== 第二波：角色 / 生物 / 載入畫面（全自製像素，非 Minecraft 官方美術）======
@@ -767,7 +788,7 @@ function viewHelp(){
       ‧ <b>累積學習每 2 天 → 解鎖一隻天空的鳥</b>（不需連續，永久保留）<br>
       ‧ 解<b>成就徽章</b>；連續學習累積<b>天數 🔥</b></div>
     <div class="field full"><div class="lab">📊 我的進度</div>
-      點最上面的<b>等級條</b>，可看：等級、抽考正確率、<b>生物圖鑑</b>（解鎖的動物與鳥）、<b>弱點字</b>（考錯的字）、成就。</div>
+      點最上面的<b>等級條</b>，可看：等級、總正確率、<b>生物圖鑑</b>、<b>弱點字</b>、成就；裡面「📊 各課表現」可看<b>每課正確率、不熟的字與部首</b>（老師診斷用）。</div>
     <div class="field full"><div class="lab">🔧 右上角小工具</div>
       🔊 語音開關 ‧ 🎵 音效開關 ‧ 🎶 背景音樂（預設關）‧ 🏠 回首頁</div>
     <div class="field full"><div class="lab">📱 裝到平板 / 手機</div>
@@ -800,9 +821,10 @@ function viewLessons(){
     const seen=l.chars.filter(c=>store.seen[S.gi+"|"+i+"|"+c.char]).length;
     const pct=Math.round(seen/l.chars.length*100);
     const done=pct===100?" ✅":"";
+    const lst=store.lessonStats[S.gi+"|"+i]; const acc=lst&&lst.total?Math.round(lst.ok/lst.total*100)+'%':'—';
     return `<div class="lesson-card block" data-li="${i}">
       <div class="no">第 ${l.id} 關${done}</div><div class="nm">${esc(l.title)}</div>
-      <div class="meta">${l.chars.length} 字 ‧ 已複習 ${seen}/${l.chars.length}</div>
+      <div class="meta">${l.chars.length} 字 ‧ 已複習 ${seen}/${l.chars.length} ‧ 正確率 ${acc}</div>
       <div class="bar2"><i style="width:${pct}%"></i></div></div>`;
   }).join("");
   elView.innerHTML=`<div style="margin-bottom:12px"><button class="btn btn-diamond" id="rangeBtn" style="width:100%">🐉 範圍挑戰（跨課複習 / 全對解鎖稀有生物）</button></div><div class="lesson-grid">${cards}</div>`;
@@ -978,13 +1000,17 @@ function renderQuizCard(){
     }
   });
   document.getElementById("ok").onclick=()=>{
-    Q.ok++; Q.combo=(Q.combo||0)+1; store.stats.quizOk++; store.stats.quizTotal++; saveStore();
+    Q.ok++; Q.combo=(Q.combo||0)+1; store.stats.quizOk++; store.stats.quizTotal++;
+    if(!S.range){ const lk=wkey(); store.lessonStats[lk]=store.lessonStats[lk]||{ok:0,total:0}; store.lessonStats[lk].ok++; store.lessonStats[lk].total++; }
+    saveStore();
     sComboTone(Q.combo); if(Q.combo>=2) comboPop(Q.combo);
     addXP(5); if(Q.combo>=10) unlock("combo10");
     buddyReact('happy'); if(!S.range) removeWrong(c.char); Q.idx++; renderQuizCard();
   };
   document.getElementById("no").onclick=()=>{
-    Q.no++; Q.combo=0; store.stats.quizTotal++; saveStore();
+    Q.no++; Q.combo=0; store.stats.quizTotal++;
+    if(!S.range){ const lk=wkey(); store.lessonStats[lk]=store.lessonStats[lk]||{ok:0,total:0}; store.lessonStats[lk].total++; }
+    saveStore();
     sNo(); buddyReact('sad'); if(!S.range) addWrong(c.char); Q.idx++; renderQuizCard();
   };
   document.getElementById("stop").onclick=()=>renderQuizDone();
