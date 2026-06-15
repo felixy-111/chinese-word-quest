@@ -769,7 +769,9 @@ function viewHelp(){
       ‧ 每個生字看：注音、部首、筆畫、造詞、造句<br>
       ‧ 點「大字」念該字；點「造詞 / 造句」念整句（台灣國語發音）<br>
       ‧ 按「✍️ 看筆順」看一筆一畫怎麼寫（田字格動畫）<br>
-      ‧ 用「◀ 上一個 / 下一個 ▶」換字，看過的字會記進度、得 XP</div>
+      ‧ 用「◀ 上一個 / 下一個 ▶」換字，看過的字會記進度、得 XP<br>
+      ‧ 複習頁會列出<b>本課不熟的字</b>（抽考答對就自動消失）<br>
+      ‧ 上方「◀ 返回課程列表」可快速回到課別清單</div>
     <div class="field full"><div class="lab">📝 抽考模式（老師主導）</div>
       ‧ 勾選題型：念注音／答部首／答筆畫／聽音寫字／造詞造句<br>
       ‧ 每題有「生詞提示」（例：ㄊㄢˋ險）幫學生定位是哪個字<br>
@@ -824,7 +826,7 @@ function viewLessons(){
     const lst=store.lessonStats[S.gi+"|"+i]; const acc=lst&&lst.total?Math.round(lst.ok/lst.total*100)+'%':'—';
     return `<div class="lesson-card block" data-li="${i}">
       <div class="no">第 ${l.id} 關${done}</div><div class="nm">${esc(l.title)}</div>
-      <div class="meta">${l.chars.length} 字 ‧ 已複習 ${seen}/${l.chars.length} ‧ 正確率 ${acc}</div>
+      <div class="meta">${l.chars.length} 字 ‧ 已複習 ${seen}/${l.chars.length} ‧ 正確率 ${acc}${(store.wrong[S.gi+"|"+i]||[]).length?(' ‧ 不熟 '+(store.wrong[S.gi+"|"+i]||[]).length+'字'):''}</div>
       <div class="bar2"><i style="width:${pct}%"></i></div></div>`;
   }).join("");
   elView.innerHTML=`<div style="margin-bottom:12px"><button class="btn btn-diamond" id="rangeBtn" style="width:100%">🐉 範圍挑戰（跨課複習 / 全對解鎖稀有生物）</button></div><div class="lesson-grid">${cards}</div>`;
@@ -864,6 +866,7 @@ function viewRange(){
 function viewStudy(){
   document.getElementById("crumb").textContent = S.range ? ("範圍 "+S.range.label) : (grade().label+" ‧ 第"+lesson().id+"關");
   elView.innerHTML=`
+    <div style="margin-bottom:8px"><button class="btn btn-stone" id="backList" style="font-size:14px;padding:7px 14px;width:auto">◀ ${S.range?'返回範圍挑戰':'返回課程列表'}</button></div>
     <div class="modeswitch">
       <button class="btn btn-grass" id="mReview">📖 複習</button>
       <button class="btn btn-gold" id="mQuiz">📝 抽考</button>
@@ -874,6 +877,7 @@ function viewStudy(){
   };
   document.getElementById("mReview").onclick=()=>{S.mode="review"; S.ci=0; sClick(); setBtns(); renderReview();};
   document.getElementById("mQuiz").onclick=()=>{S.mode="quiz"; sClick(); setBtns(); renderQuizSetup();};
+  document.getElementById("backList").onclick=()=>{sClick(); (S.range?viewRange():viewLessons());};
   setBtns();
   if(S.mode==="review") renderReview(); else renderQuizSetup();
 }
@@ -884,6 +888,8 @@ function renderReview(){
   if(!S.range){ const sk=S.gi+"|"+S.li+"|"+c.char;
     if(!store.seen[sk]){ store.seen[sk]=1; saveStore(); addXP(2); if(seenCount()>=100) unlock("see100"); } }
   const words=c.words.map(w=>`<span class="tag" data-say="${esc(w)}">${esc(w)}</span>`).join("");
+  const _wrong = (!S.range)? (store.wrong[S.gi+"|"+S.li]||[]) : [];
+  const wrongSec = _wrong.length? `<div class="field full"><div class="lab">📕 本課不熟的字（抽考答對就自動消失）</div><div class="tagrow" style="margin-top:4px">${_wrong.map(ch=>`<span class="wrongchip" data-ch="${esc(ch)}">${esc(ch)}</span>`).join("")}</div></div>` : "";
   // 進階補充（成語/詞義/破音）暫時取消，等自修版照片再以那版做
   document.getElementById("sub").innerHTML=`<div class="card block">
     <div class="charrow">
@@ -897,6 +903,7 @@ function renderReview(){
       <div class="field full"><div class="lab">造詞（點詞念音）</div><div class="tagrow">${words}</div></div>
       <div class="field full"><div class="lab">造句（點句念音 🔊）</div><div class="val" id="sentSay" style="font-weight:600; cursor:pointer">${esc(c.sentence)}</div></div>
     </div>
+    ${wrongSec}
     <div class="navrow">
       <button class="btn btn-stone" id="prev">◀ 上一個</button>
       <span class="counter">${S.ci+1} / ${chars.length}</span>
@@ -907,6 +914,7 @@ function renderReview(){
   document.getElementById("strokeBtn").onclick=()=>{sClick(); openStroke(c.char);};
   document.getElementById("sentSay").onclick=()=>{sClick(); speak(c.sentence);};
   document.querySelectorAll(".tag").forEach(t=>t.onclick=()=>{sClick(); speak(t.dataset.say);});
+  document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ch);});
   document.getElementById("prev").onclick=()=>{ if(S.ci>0){S.ci--; sClick(); renderReview();} };
   document.getElementById("next").onclick=()=>{
     if(S.ci<chars.length-1){S.ci++; sClick(); renderReview();}
