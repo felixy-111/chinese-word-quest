@@ -202,6 +202,11 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
 .zoocell .zooname{font-size:11px; color:#5a4a2a; margin-top:3px; font-weight:700; line-height:1.2;}
 .zoocell .zoolock{font-size:22px; color:#b8ac90; height:32px; display:flex; align-items:center;}
 .zoocell:not(.got) .zooname{color:#a59a7a;}
+.msrow{display:flex; align-items:center; gap:10px; background:#fff; border:2px solid var(--panelline); border-radius:6px; padding:6px 10px; margin-bottom:6px; cursor:pointer;}
+.msrow.got{background:#dff0c8;}
+.msrow .mssvg{width:48px; text-align:center;} .msrow .mssvg svg{height:30px; width:auto;}
+.msrow svg{animation:none !important;} .msrow svg *{animation:none !important;}
+.msrow .msname{font-weight:800;} .msrow .msrange{font-size:12px; color:#8a7c5a;}
 /* ── 第二波：視覺沈浸 ── */
 #loading{position:fixed; inset:0; z-index:500; background:linear-gradient(180deg,#16213e,#0f3320);
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; transition:opacity .5s;}
@@ -221,6 +226,7 @@ details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
 @keyframes birdfly{ from{transform:translateX(-60px);} to{transform:translateX(105vw);} }
 .bird svg{display:block; animation:flap .32s ease-in-out infinite;}
 @keyframes flap{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-6px) rotate(2deg);}}
+.rare{display:inline-block; filter:drop-shadow(0 0 5px rgba(255,216,61,.85));}
 #buddy{position:fixed; left:0; bottom:6px; z-index:5; pointer-events:none; animation:bwalk 22s linear infinite;}
 @keyframes bwalk{0%{transform:translateX(2vw);}48%{transform:translateX(82vw);}50%{transform:translateX(82vw) scaleX(-1);}98%{transform:translateX(2vw) scaleX(-1);}100%{transform:translateX(2vw);}}
 #buddy svg{animation:bstep .42s ease-in-out infinite;}
@@ -308,8 +314,10 @@ store.streak = store.streak || 0;
 store.lastDay = store.lastDay || "";
 store.stats = store.stats || {quizOk:0, quizTotal:0};
 store.maxStreak = store.maxStreak || 0;
+store.rares = store.rares || {};          // 里程碑稀有解鎖： key -> 1
+if(store.daysCount===undefined) store.daysCount = store.maxStreak||0;  // 累積學習天數（不需連續）
 
-let S = {gi:0, li:0, mode:"review", ci:0, quiz:null};
+let S = {gi:0, li:0, mode:"review", ci:0, quiz:null, range:null};
 
 // ====== 像素雲 ======
 (function makeClouds(){
@@ -376,6 +384,11 @@ const sGem=()=>{ [1047,1319,1568,2093].forEach((f,i)=>tone(f,.10,"sine",.05,i*.0
 
 const grade=()=>DATA.grades[S.gi];
 const lesson=()=>grade().lessons[S.li];
+function currentChars(){ return S.range ? S.range.chars : lesson().chars; }
+function sampleRangeChars(){ let out=[]; const g=grade();
+  for(let li=S.range.from-1; li<=S.range.to-1; li++){ const cs=g.lessons[li].chars.slice(), n=Math.min(3,cs.length);
+    for(let k=0;k<n;k++) out.push(cs.splice(Math.random()*cs.length|0,1)[0]); }
+  return out; }
 const elView=document.getElementById("view");
 const wkey=()=>S.gi+"|"+S.li;
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -449,7 +462,8 @@ function updateStreak(){ const today=new Date().toLocaleDateString('en-CA');
   if(store.lastDay!==today){ const y=new Date(Date.now()-864e5).toLocaleDateString('en-CA');
     const before=birdsUnlocked();
     store.streak=(store.lastDay===y)?store.streak+1:1;
-    store.maxStreak=Math.max(store.maxStreak||0, store.streak); store.lastDay=today; saveStore();
+    store.maxStreak=Math.max(store.maxStreak||0, store.streak);
+    store.daysCount=(store.daysCount||0)+1; store.lastDay=today; saveStore();
     if(store.streak>=7) unlock("streak7");
     if(birdsUnlocked()>before){ const b=BIRDS[birdsUnlocked()-1]; if(b) setTimeout(()=>showUnlock(b),1400); }
   } else { store.maxStreak=Math.max(store.maxStreak||0, store.streak); } }
@@ -461,7 +475,9 @@ function viewStats(){
     return `<div class="zoocell ${got?'got':''}">`+(got?'<div class="zoosvg">'+a.svg()+'</div><div class="zooname">'+a.name+'</div>':'<div class="zoolock">？</div><div class="zooname">第'+(i+1)+'課全對</div>')+`</div>`; }).join("");
   const bu=birdsUnlocked();
   const birdCells=BIRDS.map((b,i)=>{ const got=i<bu;
-    return `<div class="zoocell ${got?'got':''}">`+(got?'<div class="zoosvg">'+b.svg()+'</div><div class="zooname">'+b.name+'</div>':'<div class="zoolock">？</div><div class="zooname">連續'+((i+1)*3)+'天</div>')+`</div>`; }).join("");
+    return `<div class="zoocell ${got?'got':''}">`+(got?'<div class="zoosvg">'+b.svg()+'</div><div class="zooname">'+b.name+'</div>':'<div class="zoolock">？</div><div class="zooname">累積'+((i+1)*2)+'天</div>')+`</div>`; }).join("");
+  const rareCells=MILESTONES.map(m=>{ const got=store.rares[m.key];
+    return `<div class="zoocell ${got?'got':''}">`+(got?'<div class="zoosvg">'+m.svg()+'</div><div class="zooname">'+m.name+'</div>':'<div class="zoolock">？</div><div class="zooname">第'+m.from+'-'+m.to+'課全對</div>')+`</div>`; }).join("");
   const acc= store.stats.quizTotal? Math.round(store.stats.quizOk/store.stats.quizTotal*100):0;
   const achvHTML=ACHV.map(a=>`<div class="achvrow ${store.achv[a.id]?'':'locked'}">
     <span class="ic">${a.ic}</span><div><div class="nm">${a.nm}</div><div class="ds">${a.ds}</div></div></div>`).join("");
@@ -471,7 +487,8 @@ function viewStats(){
     <div style="text-align:center"><div class="levelup">Lv.${li.lv}　${esc(li.name)}</div>
       <div class="statline">${store.xp} XP ‧ 🔥連續 ${store.streak} 天 ‧ 看過 ${seenCount()} 字 ‧ 抽考正確率 ${acc}%</div></div>
     <div class="field full"><div class="lab">🐾 生物圖鑑（每課抽考全對解鎖）</div><div class="zoowall">${groundCells}</div></div>
-    <div class="field full"><div class="lab">🕊️ 天空夥伴（連續學習每 3 天解鎖）</div><div class="zoowall">${birdCells}</div></div>
+    <div class="field full"><div class="lab">🕊️ 天空夥伴（累積學習每 2 天解鎖）</div><div class="zoowall">${birdCells}</div></div>
+    <div class="field full"><div class="lab">✨ 稀有生物（範圍挑戰全對解鎖）</div><div class="zoowall">${rareCells}</div></div>
     <div class="field full"><div class="lab">📕 弱點字（抽考錯過的字，點念音）</div><div style="margin-top:6px">${weakHTML}</div></div>
     <div class="field full"><div class="lab">🏅 成就</div>${achvHTML}</div>
     <div class="navrow"><button class="btn btn-stone" id="sback">◀ 返回</button></div></div>`;
@@ -631,16 +648,79 @@ const BIRDS=[
   {key:"parrot",name:"鸚鵡",svg:parrotSVG},{key:"sparrow",name:"麻雀",svg:sparrowSVG},{key:"owl",name:"貓頭鷹",svg:owlSVG},
   {key:"swallow",name:"燕子",svg:swallowSVG},{key:"pigeon",name:"鴿子",svg:pigeonSVG},
 ];
-function birdsUnlocked(){ return Math.min(Math.floor((store.maxStreak||0)/3), BIRDS.length); }
+function birdsUnlocked(){ return Math.min(Math.floor((store.daysCount||0)/2), BIRDS.length); }
+// ── 稀有生物（範圍里程碑全對解鎖；自製像素，非 Minecraft 官方）──
+function dragonletSVG(){ return `<svg class="hop" viewBox="0 0 20 15" width="48" shape-rendering="crispEdges">
+<rect x="0" y="6" width="2" height="2" fill="#4a9a4a"/><rect x="1" y="7" width="4" height="2" fill="#5cb85c"/>
+<rect x="4" y="5" width="9" height="6" fill="#5cb85c"/><rect x="5" y="8" width="7" height="3" fill="#9ad89a"/>
+<rect x="6" y="2" width="5" height="3" fill="#7ec87e"/><rect x="7" y="1" width="3" height="1.5" fill="#7ec87e"/>
+<rect x="11" y="4" width="6" height="6" fill="#5cb85c"/><rect x="12" y="2" width="1.4" height="2" fill="#3a7a3a"/><rect x="14.5" y="2" width="1.4" height="2" fill="#3a7a3a"/>
+<rect x="14" y="5" width="1.6" height="1.6" fill="#fff"/><rect x="14.4" y="5.4" width="0.8" height="0.9" fill="#222"/><rect x="16.5" y="7" width="0.8" height="0.8" fill="#3a7a3a"/>
+<rect x="5" y="11" width="2" height="2" fill="#4a9a4a"/><rect x="9" y="11" width="2" height="2" fill="#4a9a4a"/></svg>`; }
+function phoenixSVG(){ return `<svg viewBox="0 0 22 16" width="54" shape-rendering="crispEdges">
+<rect x="0" y="6" width="6" height="2" fill="#e23b3b"/><rect x="0" y="8.5" width="5" height="2" fill="#f5872a"/><rect x="1" y="3.5" width="5" height="2" fill="#f5c518"/>
+<rect x="5" y="6" width="7" height="6" fill="#e85a2a"/><rect x="6" y="4" width="5" height="3" fill="#f5872a"/><rect x="7" y="2.5" width="3" height="2" fill="#f5c518"/>
+<rect x="10" y="4" width="5" height="5" fill="#e85a2a"/><rect x="11" y="1.5" width="1.4" height="2.5" fill="#f5c518"/><rect x="12.8" y="1" width="1.4" height="3" fill="#f5c518"/>
+<rect x="12.5" y="5" width="1.3" height="1.3" fill="#fff"/><rect x="12.9" y="5.3" width="0.6" height="0.7" fill="#222"/><rect x="14.5" y="5.6" width="2.5" height="1.4" fill="#f5b53a"/>
+<rect x="7" y="12" width="1.4" height="2.5" fill="#f5b53a"/><rect x="10" y="12" width="1.4" height="2.5" fill="#f5b53a"/></svg>`; }
+function azureDragonSVG(){ return `<svg viewBox="0 0 22 16" width="54" shape-rendering="crispEdges">
+<rect x="0" y="7" width="2" height="2" fill="#2a8aa0"/><rect x="1" y="8" width="4" height="2" fill="#33c0e0"/>
+<rect x="4" y="5" width="10" height="7" fill="#33c0e0"/><rect x="5" y="9" width="8" height="3" fill="#aef0ff"/>
+<rect x="6" y="1.5" width="6" height="3.5" fill="#5fd6f0"/><rect x="7" y="0.5" width="4" height="1.5" fill="#5fd6f0"/>
+<rect x="12" y="3" width="7" height="7" fill="#33c0e0"/><rect x="13" y="1" width="1.5" height="2.2" fill="#1f7a90"/><rect x="16" y="1" width="1.5" height="2.2" fill="#1f7a90"/>
+<rect x="15.5" y="4.5" width="1.8" height="1.8" fill="#fff"/><rect x="16" y="5" width="0.9" height="1" fill="#222"/>
+<rect x="18.5" y="6.5" width="2.5" height="0.8" fill="#f5c518"/><rect x="18.5" y="8" width="2" height="0.8" fill="#f5c518"/>
+<rect x="5" y="12" width="2" height="2.5" fill="#2a8aa0"/><rect x="10" y="12" width="2" height="2.5" fill="#2a8aa0"/></svg>`; }
+function goldDragonSVG(){ return `<svg viewBox="0 0 24 17" width="58" shape-rendering="crispEdges">
+<rect x="0" y="7" width="2" height="3" fill="#c8920f"/><rect x="1" y="8" width="5" height="2.5" fill="#f5c518"/>
+<rect x="4" y="5" width="11" height="8" fill="#f5c518"/><rect x="5" y="9.5" width="9" height="3.5" fill="#ffe98a"/>
+<rect x="6" y="1" width="7" height="4" fill="#ffd83d"/><rect x="7" y="0" width="5" height="1.3" fill="#ffd83d"/>
+<rect x="13" y="2.5" width="8" height="8" fill="#f5c518"/><rect x="14" y="0.5" width="1.6" height="2.3" fill="#c8920f"/><rect x="17.5" y="0.5" width="1.6" height="2.3" fill="#c8920f"/>
+<rect x="17" y="4.5" width="2" height="2" fill="#fff"/><rect x="17.6" y="5.1" width="1" height="1.1" fill="#222"/>
+<rect x="20.5" y="6.5" width="3" height="1" fill="#e23b3b"/><rect x="20.5" y="8" width="2.5" height="1" fill="#f5872a"/>
+<rect x="5" y="13" width="2.2" height="3" fill="#c8920f"/><rect x="11" y="13" width="2.2" height="3" fill="#c8920f"/></svg>`; }
+function qilinSVG(){ return `<svg class="hop" viewBox="0 0 20 16" width="50" shape-rendering="crispEdges">
+<rect x="3" y="6" width="10" height="6" fill="#6ac46a"/><rect x="4" y="7" width="2" height="2" fill="#f5c518"/><rect x="8" y="8" width="2" height="2" fill="#f5c518"/>
+<rect x="0" y="5" width="3" height="2" fill="#4a9a4a"/><rect x="12" y="3" width="5" height="6" fill="#6ac46a"/>
+<rect x="13.5" y="0.5" width="1.4" height="3" fill="#f5c518"/><rect x="14.5" y="4" width="1.6" height="1.6" fill="#fff"/><rect x="15" y="4.5" width="0.8" height="0.9" fill="#222"/>
+<rect x="11.5" y="6" width="2" height="3" fill="#e23b3b"/>
+<rect x="4" y="12" width="1.8" height="3" fill="#3a7a3a"/><rect x="9.5" y="12" width="1.8" height="3" fill="#3a7a3a"/></svg>`; }
+function whiteTigerSVG(){ return `<svg class="hop" viewBox="0 0 20 14" width="50" shape-rendering="crispEdges">
+<rect x="2" y="5" width="11" height="6" fill="#f4f4f6"/>
+<rect x="4" y="5" width="1" height="3" fill="#333"/><rect x="6" y="5" width="1" height="4" fill="#333"/><rect x="8" y="5" width="1" height="3" fill="#333"/><rect x="10" y="5" width="1" height="4" fill="#333"/>
+<rect x="0" y="6" width="3" height="2" fill="#f4f4f6"/><rect x="0" y="6" width="1" height="1" fill="#333"/>
+<rect x="12" y="3" width="6" height="6" fill="#f4f4f6"/><rect x="12.5" y="2" width="1.5" height="2" fill="#f4f4f6"/><rect x="16" y="2" width="1.5" height="2" fill="#f4f4f6"/>
+<rect x="13.5" y="5" width="1.4" height="1.4" fill="#5a8"/><rect x="14" y="5.4" width="0.7" height="0.8" fill="#222"/><rect x="13" y="3.5" width="0.8" height="1" fill="#333"/><rect x="16" y="3.5" width="0.8" height="1" fill="#333"/><rect x="16.5" y="6.5" width="1.5" height="1" fill="#f5a"/>
+<rect x="3" y="11" width="2" height="2.5" fill="#ddd"/><rect x="9" y="11" width="2" height="2.5" fill="#ddd"/></svg>`; }
+function unicornSVG(){ return `<svg class="hop" viewBox="0 0 20 16" width="50" shape-rendering="crispEdges">
+<rect x="3" y="6" width="10" height="6" fill="#fff"/><rect x="1" y="6" width="3" height="4" fill="#c8a8e8"/><rect x="0.5" y="9" width="2" height="3" fill="#a87fd0"/>
+<rect x="11" y="3" width="5" height="6" fill="#fff"/><rect x="14" y="-0.5" width="1.3" height="3.5" fill="#f5c518"/>
+<rect x="11.5" y="2" width="3.5" height="2.5" fill="#e23b3b"/><rect x="11.5" y="2" width="3.5" height="0.9" fill="#f5872a"/><rect x="11.5" y="3.6" width="3.5" height="0.9" fill="#3fd0e0"/>
+<rect x="13.5" y="5" width="1.5" height="1.5" fill="#7a5"/><rect x="14" y="5.4" width="0.8" height="0.9" fill="#222"/>
+<rect x="4" y="12" width="1.8" height="3" fill="#e0e0e0"/><rect x="9.5" y="12" width="1.8" height="3" fill="#e0e0e0"/></svg>`; }
+// 里程碑範圍 → 稀有生物（from/to 為課號 1-based）
+const MILESTONES=[
+  {from:1,to:3,  key:"dragonlet", name:"小飛龍", svg:dragonletSVG,  sky:true},
+  {from:4,to:6,  key:"qilin",     name:"麒麟",   svg:qilinSVG,      sky:false},
+  {from:7,to:9,  key:"phoenix",   name:"鳳凰",   svg:phoenixSVG,    sky:true},
+  {from:10,to:12,key:"tiger",     name:"白虎",   svg:whiteTigerSVG, sky:false},
+  {from:1,to:6,  key:"azure",     name:"青龍",   svg:azureDragonSVG,sky:true},
+  {from:7,to:12, key:"unicorn",   name:"獨角獸", svg:unicornSVG,    sky:false},
+  {from:1,to:12, key:"golddragon",name:"金龍",   svg:goldDragonSVG, sky:true},
+];
+function milestoneOf(from,to){ return MILESTONES.find(m=>m.from===from&&m.to===to); }
 function spawnCritters(){ const box=document.getElementById("critters"); if(!box) return; box.innerHTML="";
   const list=GROUND_BASE.map(f=>f());
   GROUND_UNLOCK.forEach((a,i)=>{ if(store.collected["0|"+i]) list.push(a.svg()); });
+  MILESTONES.filter(m=>!m.sky&&store.rares[m.key]).forEach(m=>list.push('<span class="rare">'+m.svg()+'</span>'));
   list.forEach((svg,i)=>{ const c=document.createElement("div"); c.className="critter"; c.innerHTML=svg;
     c.style.animationDuration=(12+i*2.2)+"s"; c.style.animationDelay=(-i*3.2)+"s"; box.appendChild(c); }); }
 function spawnBirds(){ const box=document.getElementById("birds"); if(!box) return; box.innerHTML="";
-  const n=birdsUnlocked();
-  for(let i=0;i<n;i++){ const b=document.createElement("div"); b.className="bird"; b.innerHTML=BIRDS[i].svg();
-    b.style.top=(7+i*10)+"%"; b.style.animationDuration=(17+i*4)+"s"; b.style.animationDelay=(-i*5)+"s"; box.appendChild(b); } }
+  const n=birdsUnlocked(); let items=[];
+  for(let i=0;i<n;i++) items.push(BIRDS[i].svg());
+  MILESTONES.filter(m=>m.sky&&store.rares[m.key]).forEach(m=>items.push('<span class="rare">'+m.svg()+'</span>'));
+  items.forEach((svg,i)=>{ const b=document.createElement("div"); b.className="bird"; b.innerHTML=svg;
+    b.style.top=(7+i*9)+"%"; b.style.animationDuration=(17+i*3.5)+"s"; b.style.animationDelay=(-i*5)+"s"; box.appendChild(b); }); }
 function hideLoading(){ const l=document.getElementById("loading"); if(!l) return; l.classList.add("hide"); setTimeout(()=>l.remove(),600); }
 // 筆順動畫（hanzi-writer，自託管資料）
 let hw=null;
@@ -675,11 +755,16 @@ function viewHelp(){
       ‧ 答案被方塊蓋住，<b>老師點一下方塊「挖開」</b>看答案、再點一下蓋回（學生看不到）<br>
       ‧ 老師按「答對 ✓ / 答錯 ✗」記分；連續答對會「連擊」<br>
       ‧ 答錯的字自動進「錯題本」，可設「只考錯題本」「隨機出題」</div>
+    <div class="field full"><div class="lab">🐉 範圍挑戰（跨課複習 / 解鎖稀有生物）</div>
+      ‧ 課次地圖上方點「🐉 範圍挑戰」<br>
+      ‧ 選「第幾課到第幾課」，可跨課<b>範圍複習</b>或<b>範圍抽考</b><br>
+      ‧ 命中<b>里程碑範圍且全對 → 解鎖稀有生物</b>（龍／神獸）<br>
+      ‧ 7 個里程碑：每 3 課一段、上下半冊、全冊（越大越稀有，全冊解鎖金龍）</div>
     <div class="field full"><div class="lab">🏆 闖關獎勵（讓學生想一直玩）</div>
       ‧ 複習、答對都得 <b>XP</b>，累積<b>升等級</b>（生字見習生 → 大師）<br>
       ‧ <b>升級時主角會換上新裝備</b>（頭帶 → 帽子 → 鑽石盔甲 → 皇冠，越來越神氣）<br>
       ‧ <b>每課抽考全對 → 解鎖一隻小動物</b>（會跳慶祝彈窗 🎉 ＋ 彩帶！）<br>
-      ‧ <b>連續學習每 3 天 → 解鎖一隻天空的鳥</b>（永久保留，斷了不會掉）<br>
+      ‧ <b>累積學習每 2 天 → 解鎖一隻天空的鳥</b>（不需連續，永久保留）<br>
       ‧ 解<b>成就徽章</b>；連續學習累積<b>天數 🔥</b></div>
     <div class="field full"><div class="lab">📊 我的進度</div>
       點最上面的<b>等級條</b>，可看：等級、抽考正確率、<b>生物圖鑑</b>（解鎖的動物與鳥）、<b>弱點字</b>（考錯的字）、成就。</div>
@@ -720,14 +805,42 @@ function viewLessons(){
       <div class="meta">${l.chars.length} 字 ‧ 已複習 ${seen}/${l.chars.length}</div>
       <div class="bar2"><i style="width:${pct}%"></i></div></div>`;
   }).join("");
-  elView.innerHTML=`<div class="lesson-grid">${cards}</div>`;
-  elView.querySelectorAll(".lesson-card").forEach(c=>c.onclick=()=>{S.li=+c.dataset.li; S.ci=0; S.mode="review"; sPlace(); viewStudy();});
+  elView.innerHTML=`<div style="margin-bottom:12px"><button class="btn btn-diamond" id="rangeBtn" style="width:100%">🐉 範圍挑戰（跨課複習 / 全對解鎖稀有生物）</button></div><div class="lesson-grid">${cards}</div>`;
+  elView.querySelectorAll(".lesson-card").forEach(c=>c.onclick=()=>{S.range=null; S.li=+c.dataset.li; S.ci=0; S.mode="review"; sPlace(); viewStudy();});
+  document.getElementById("rangeBtn").onclick=()=>{sClick(); viewRange();};
+}
+
+// ====== 範圍挑戰頁 ======
+function viewRange(){
+  S.range=null;
+  document.getElementById("crumb").textContent="範圍挑戰";
+  const g=grade(), n=g.lessons.length;
+  const opt=(sel)=>g.lessons.map((l,i)=>`<option value="${i+1}" ${sel===i+1?'selected':''}>第${l.id}課 ${esc(l.title)}</option>`).join("");
+  const ms=MILESTONES.map(m=>{ const got=store.rares[m.key];
+    return `<div class="msrow ${got?'got':''}" data-from="${m.from}" data-to="${m.to}">
+      <div class="mssvg">${m.svg()}</div>
+      <div><div class="msname">${m.name}${got?' ✓':''}</div><div class="msrange">第${m.from}-${m.to}課 全對解鎖</div></div></div>`; }).join("");
+  elView.innerHTML=`<div class="card block" style="text-align:left">
+    <div class="q-prompt">🐉 選範圍,跨課複習或抽考</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;font-weight:700">
+      第 <select id="rFrom" style="font-size:16px;padding:4px">${opt(1)}</select> 課　到　第 <select id="rTo" style="font-size:16px;padding:4px">${opt(n)}</select> 課</div>
+    <div class="navrow">
+      <button class="btn btn-grass" id="rReview">📖 範圍複習</button>
+      <button class="btn btn-gold" id="rQuiz">📝 範圍抽考</button></div>
+    <div class="field full" style="margin-top:12px"><div class="lab">🏆 里程碑（範圍抽考全對 → 解鎖稀有生物；點一下帶入範圍）</div>${ms}</div>
+    <div class="navrow"><button class="btn btn-stone" id="rBack">◀ 返回</button></div></div>`;
+  const setRange=(from,to)=>{ if(from>to){const t=from;from=to;to=t;} let chars=[];
+    for(let li=from-1;li<=to-1;li++) chars=chars.concat(g.lessons[li].chars);
+    S.range={from,to,chars,label:"第"+from+"-"+to+"課"}; };
+  document.getElementById("rReview").onclick=()=>{ const f=+document.getElementById("rFrom").value,t=+document.getElementById("rTo").value; sClick(); setRange(f,t); S.mode="review"; S.ci=0; viewStudy(); };
+  document.getElementById("rQuiz").onclick=()=>{ const f=+document.getElementById("rFrom").value,t=+document.getElementById("rTo").value; sClick(); setRange(f,t); S.mode="quiz"; viewStudy(); };
+  elView.querySelectorAll(".msrow").forEach(r=>r.onclick=()=>{ document.getElementById("rFrom").value=r.dataset.from; document.getElementById("rTo").value=r.dataset.to; sClick(); });
+  document.getElementById("rBack").onclick=()=>{sClick(); viewLessons();};
 }
 
 // ====== 學習頁（複習↔抽考共用）======
 function viewStudy(){
-  const l=lesson();
-  document.getElementById("crumb").textContent=grade().label+" ‧ 第"+l.id+"關";
+  document.getElementById("crumb").textContent = S.range ? ("範圍 "+S.range.label) : (grade().label+" ‧ 第"+lesson().id+"關");
   elView.innerHTML=`
     <div class="modeswitch">
       <button class="btn btn-grass" id="mReview">📖 複習</button>
@@ -745,9 +858,9 @@ function viewStudy(){
 
 // ---- 複習 ----
 function renderReview(){
-  const l=lesson(), c=l.chars[S.ci];
-  const sk=S.gi+"|"+S.li+"|"+c.char;
-  if(!store.seen[sk]){ store.seen[sk]=1; saveStore(); addXP(2); if(seenCount()>=100) unlock("see100"); }
+  const chars=currentChars(), c=chars[S.ci];
+  if(!S.range){ const sk=S.gi+"|"+S.li+"|"+c.char;
+    if(!store.seen[sk]){ store.seen[sk]=1; saveStore(); addXP(2); if(seenCount()>=100) unlock("see100"); } }
   const words=c.words.map(w=>`<span class="tag" data-say="${esc(w)}">${esc(w)}</span>`).join("");
   // 進階補充（成語/詞義/破音）暫時取消，等自修版照片再以那版做
   document.getElementById("sub").innerHTML=`<div class="card block">
@@ -764,7 +877,7 @@ function renderReview(){
     </div>
     <div class="navrow">
       <button class="btn btn-stone" id="prev">◀ 上一個</button>
-      <span class="counter">${S.ci+1} / ${l.chars.length}</span>
+      <span class="counter">${S.ci+1} / ${chars.length}</span>
       <button class="btn btn-grass" id="next">下一個 ▶</button>
     </div>
     <div class="hint">綠色經驗條會記住你看過哪些字</div></div>`;
@@ -774,10 +887,10 @@ function renderReview(){
   document.querySelectorAll(".tag").forEach(t=>t.onclick=()=>{sClick(); speak(t.dataset.say);});
   document.getElementById("prev").onclick=()=>{ if(S.ci>0){S.ci--; sClick(); renderReview();} };
   document.getElementById("next").onclick=()=>{
-    if(S.ci<l.chars.length-1){S.ci++; sClick(); renderReview();}
-    else{ // 看完整課
-      if(l.chars.every(x=>store.seen[S.gi+"|"+S.li+"|"+x.char])) unlock("first_review");
-      sWin(); viewLessons(); }
+    if(S.ci<chars.length-1){S.ci++; sClick(); renderReview();}
+    else{
+      if(!S.range && chars.every(x=>store.seen[S.gi+"|"+S.li+"|"+x.char])) unlock("first_review");
+      sWin(); (S.range?viewRange():viewLessons()); }
   };
   speak(c.say||c.char);
 }
@@ -805,12 +918,12 @@ function renderQuizSetup(){
       <button class="btn btn-gold" id="start">開始抽考 ▶</button>
     </div>
     <div class="hint">抽考時：按住右上角 🔑 才看得到答案，放手就蓋回；老師按「答對／答錯」記分</div></div>`;
-  document.getElementById("back").onclick=()=>{S.mode="review"; viewStudy();};
+  document.getElementById("back").onclick=()=>{ if(S.range) viewRange(); else { S.mode="review"; viewStudy(); } };
   document.getElementById("start").onclick=()=>{
     const types=[...document.querySelectorAll(".qt:checked")].map(x=>x.value);
     if(!types.length){alert("請至少選一種題型");return;}
-    let chars=l.chars.slice();
-    if(document.getElementById("onlyWrong").checked){
+    let chars = S.range ? sampleRangeChars() : l.chars.slice();
+    if(!S.range && document.getElementById("onlyWrong").checked){
       const w=store.wrong[wkey()]||[]; chars=chars.filter(c=>w.includes(c.char));
     }
     let queue=[];
@@ -868,11 +981,11 @@ function renderQuizCard(){
     Q.ok++; Q.combo=(Q.combo||0)+1; store.stats.quizOk++; store.stats.quizTotal++; saveStore();
     sComboTone(Q.combo); if(Q.combo>=2) comboPop(Q.combo);
     addXP(5); if(Q.combo>=10) unlock("combo10");
-    buddyReact('happy'); removeWrong(c.char); Q.idx++; renderQuizCard();
+    buddyReact('happy'); if(!S.range) removeWrong(c.char); Q.idx++; renderQuizCard();
   };
   document.getElementById("no").onclick=()=>{
     Q.no++; Q.combo=0; store.stats.quizTotal++; saveStore();
-    sNo(); buddyReact('sad'); addWrong(c.char); Q.idx++; renderQuizCard();
+    sNo(); buddyReact('sad'); if(!S.range) addWrong(c.char); Q.idx++; renderQuizCard();
   };
   document.getElementById("stop").onclick=()=>renderQuizDone();
 }
@@ -883,26 +996,35 @@ function removeWrong(ch){ const k=wkey(); if(store.wrong[k]) store.wrong[k]=stor
 function renderQuizDone(){
   const Q=S.quiz, total=Q.ok+Q.no, pct=total?Math.round(Q.ok/total*100):0;
   sWin();
-  if(total>0 && pct===100){ unlock("perfect"); collectGem(); }
-  const wlist=store.wrong[wkey()]||[], lc=lesson().chars;
-  const chips=wlist.length? wlist.map(ch=>{const cc=lc.find(x=>x.char===ch); const sy=cc?(cc.say||ch):ch;
-      return `<span class="wrongchip" data-ch="${esc(ch)}" data-say="${esc(sy)}">${esc(ch)}</span>`;}).join("")
-                          : `<div class="empty">這關錯題本是空的，太棒了！🏆</div>`;
+  if(total>0 && pct===100){
+    if(S.range){ const m=milestoneOf(S.range.from,S.range.to);
+      if(m && !store.rares[m.key]){ store.rares[m.key]=1; saveStore(); showUnlock(m); if(m.sky)spawnBirds(); else spawnCritters(); } }
+    else { unlock("perfect"); collectGem(); }
+  }
   const medal = pct===100?"🏆 全部答對！":(pct>=80?"⭐ 闖關高手！":(pct>=60?"💪 再接再厲！":"🌱 多練習會更棒！"));
+  let wrongSec="";
+  if(!S.range){ const wlist=store.wrong[wkey()]||[], lc=lesson().chars;
+    const chips=wlist.length? wlist.map(ch=>{const cc=lc.find(x=>x.char===ch); const sy=cc?(cc.say||ch):ch;
+        return `<span class="wrongchip" data-ch="${esc(ch)}" data-say="${esc(sy)}">${esc(ch)}</span>`;}).join("")
+                            : `<div class="empty">這關錯題本是空的，太棒了！🏆</div>`;
+    wrongSec=`<div class="field full"><div class="lab">📕 本關錯題本（點字念音）</div><div style="margin-top:6px">${chips}</div></div>`; }
+  let rangeNote="";
+  if(S.range){ const m=milestoneOf(S.range.from,S.range.to);
+    rangeNote=`<div class="statline">範圍挑戰：${esc(S.range.label)}${m?(pct===100?(store.rares[m.key]?' ‧ 已解鎖 '+m.name:''):' ‧ 全對解鎖 '+m.name):''}</div>`; }
   document.getElementById("sub").innerHTML=`<div class="card block">
     <div class="bigstat">
       <div class="levelup">${medal}</div>
       <div class="num">${pct}分</div>
       <div class="expbar" style="max-width:320px;margin:8px auto"><i style="width:${pct}%"></i></div>
-      <div class="statline">答對 ${Q.ok} ‧ 答錯 ${Q.no}（共 ${total} 題）</div></div>
-    <div class="field full"><div class="lab">📕 本關錯題本（點字念音）</div><div style="margin-top:6px">${chips}</div></div>
+      <div class="statline">答對 ${Q.ok} ‧ 答錯 ${Q.no}（共 ${total} 題）</div>${rangeNote}</div>
+    ${wrongSec}
     <div class="navrow">
       <button class="btn btn-gold" id="again">再考一次</button>
-      <button class="btn btn-stone" id="back">返回關卡</button>
+      <button class="btn btn-stone" id="back">${S.range?'返回範圍挑戰':'返回關卡'}</button>
     </div></div>`;
   document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.say||x.dataset.ch);});
   document.getElementById("again").onclick=()=>{sClick(); renderQuizSetup();};
-  document.getElementById("back").onclick=()=>{sClick(); viewLessons();};
+  document.getElementById("back").onclick=()=>{sClick(); (S.range?viewRange():viewLessons());};
 }
 
 // ====== 頂部按鈕 ======
