@@ -1,4 +1,4 @@
-const CACHE = "cwq-v29";
+const CACHE = "cwq-v30";
 const ASSETS = ["./", "index.html", "data/words.js", "data/strokes.js", "hanzi-writer.min.js", "manifest.webmanifest", "audio/bgm.mp3"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(()=>{}));
@@ -11,3 +11,4 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)).catch(()=>caches.match("index.html")));
 });
+self.addEventListener("message", e => { if(e.data === "skipWaiting") self.skipWaiting(); });

@@ -263,10 +263,14 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 .uname{font-size:24px; font-weight:900; color:var(--ink); margin-bottom:16px;}
 .confetti{position:fixed; top:-20px; width:12px; height:12px; z-index:401; pointer-events:none; animation:confall linear forwards;}
 @keyframes confall{0%{transform:translateY(-20px) rotate(0); opacity:1;} 100%{transform:translateY(106vh) rotate(720deg); opacity:.9;}}
+#updatebar{position:fixed;left:0;right:0;top:0;z-index:600;display:none;background:#1F3A5F;color:#fff;text-align:center;padding:9px 12px;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.35);}
+#updatebar.show{display:block;}
+#updatebar button{margin-left:10px;background:#ffd83d;color:#1F3A5F;border:none;padding:5px 14px;border-radius:6px;font-weight:800;cursor:pointer;font-family:inherit;}
 </style>
 </head>
 <body>
 <div id="loading"><div class="lblock"></div><div class="ltxt">🗺️ 生字大冒險</div><div class="lhint">載入中… ⛏️</div></div>
+<div id="updatebar">🆕 有新版本！<button id="updNow">點此更新</button></div>
 <div class="sky" id="sky"></div>
 <div class="ground"></div>
 <div class="birds" id="birds"></div>
@@ -303,6 +307,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
+const APP_VER = "v30｜2026.06.16";
 const LS_KEY = "cwq_state_v1";
 let store = loadStore();
 function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
@@ -819,8 +824,29 @@ function viewHelp(){
       🔊 語音開關 ‧ 🎵 音效開關 ‧ 🎶 背景音樂（預設關）‧ 🏠 回首頁</div>
     <div class="field full"><div class="lab">📱 裝到平板 / 手機</div>
       用 Safari（或 Chrome）開網址 → 「分享 / 選單」→「加入主畫面」→ 變成 App 圖示，離線也能用。</div>
+    <div class="field full"><div class="lab">🔄 更新與進度存檔</div>
+      ‧ 目前版本：<b>${APP_VER}</b>　<button class="btn btn-diamond" id="btnCheckUpd" style="font-size:13px;padding:5px 12px;width:auto">🔄 檢查更新</button><br>
+      ‧ 有新版時，畫面<b>最上方會跳「🆕 有新版本，點此更新」</b>，點了就會更新，<b>進度不會不見</b>（不用重裝）<br>
+      ‧ <b>進度存檔</b>：要換平板、或不小心把 app 刪掉重裝前，先按「💾 存檔」把進度複製起來保存；新裝置貼回欄位再按「📥 讀檔」就能救回<br>
+      <textarea id="saveTxt" rows="3" style="width:100%;box-sizing:border-box;margin-top:6px;font-size:12px;border:2px solid var(--panelline);border-radius:6px;padding:6px" placeholder="按「💾 存檔」會把進度產生在這裡；或把舊存檔貼進來再按「📥 讀檔」"></textarea>
+      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-grass" id="btnSave" style="font-size:13px;padding:6px 12px;width:auto">💾 存檔（複製）</button>
+        <button class="btn btn-gold" id="btnLoad" style="font-size:13px;padding:6px 12px;width:auto">📥 讀檔（貼上套用）</button>
+      </div></div>
     <div class="navrow"><button class="btn btn-grass" id="helpBack">◀ 開始使用</button></div></div>`;
   document.getElementById("helpBack").onclick=()=>{sClick(); viewHome();};
+  document.getElementById("btnCheckUpd").onclick=()=>{sClick(); checkUpdate();};
+  document.getElementById("btnSave").onclick=()=>{ const t=document.getElementById("saveTxt");
+    t.value=localStorage.getItem(LS_KEY)||"{}"; t.focus(); t.select();
+    let ok=false; try{ navigator.clipboard.writeText(t.value); ok=true; }catch(e){}
+    if(!ok){ try{ ok=document.execCommand("copy"); }catch(e){} }
+    sWin(); alert(ok?"已存檔並複製！貼到備忘錄或記事本保存起來，就不怕弄丟。":"已產生存檔，請長按全選→複製，保存起來。"); };
+  document.getElementById("btnLoad").onclick=()=>{ const t=document.getElementById("saveTxt").value.trim();
+    if(!t){ alert("請先把存檔文字貼進上面的欄位。"); return; }
+    let o; try{ o=JSON.parse(t); }catch(e){ alert("這份存檔格式不對，請確認有完整複製到。"); return; }
+    if(!o || typeof o!=="object"){ alert("這份存檔格式不對。"); return; }
+    if(!confirm("確定用這份存檔覆蓋目前的進度嗎？")) return;
+    localStorage.setItem(LS_KEY, JSON.stringify(o)); alert("讀檔成功！進度已還原 🎉"); location.reload(); };
 }
 
 // ====== 多音字工具 ======
@@ -1172,7 +1198,32 @@ document.getElementById("unlockClose").onclick=()=>{ sClick(); document.getEleme
 document.getElementById("strokeReplay").onclick=()=>{ if(hw) hw.animateCharacter(); };
 if(!DATA.grades.length){ elView.innerHTML='<div class="empty">找不到生字資料（data/words.js）</div>'; }
 else viewHome();
-if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+let swReg=null, swRefreshing=false;
+function showUpdateBar(){ const b=document.getElementById("updatebar"); if(b) b.classList.add("show"); }
+async function checkUpdate(){
+  if(!("serviceWorker" in navigator)){ alert("這個瀏覽器不支援自動更新，重新整理一次即可。"); return; }
+  const reg = swReg || await navigator.serviceWorker.getRegistration();
+  if(!reg){ alert("重新整理一次就會是最新版囉。"); location.reload(); return; }
+  await reg.update();
+  if(reg.waiting){ reg.waiting.postMessage("skipWaiting"); }
+  else alert("已經是最新版本了！🎉（目前 "+APP_VER+"）");
+}
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").then(reg=>{
+    swReg=reg; reg.update();
+    if(reg.waiting && navigator.serviceWorker.controller) showUpdateBar();
+    reg.addEventListener("updatefound", ()=>{ const nw=reg.installing;
+      nw && nw.addEventListener("statechange", ()=>{
+        if(nw.state==="installed" && navigator.serviceWorker.controller) showUpdateBar();
+      });
+    });
+  }).catch(()=>{});
+  navigator.serviceWorker.addEventListener("controllerchange", ()=>{
+    if(swRefreshing) return; swRefreshing=true; location.reload();
+  });
+  const un=document.getElementById("updNow");
+  if(un) un.onclick=()=>{ if(swReg && swReg.waiting) swReg.waiting.postMessage("skipWaiting"); else location.reload(); };
+}
 </script>
 </body>
 </html>
