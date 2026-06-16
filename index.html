@@ -490,7 +490,7 @@ function viewStats(){
     <div class="field full"><div class="lab">🐾 生物圖鑑（每課抽考全對解鎖）</div><div class="zoowall">${groundCells}</div></div>
     <div class="field full"><div class="lab">🕊️ 天空夥伴（累積學習每 2 天解鎖）</div><div class="zoowall">${birdCells}</div></div>
     <div class="field full"><div class="lab">✨ 稀有生物（範圍挑戰全對解鎖）</div><div class="zoowall">${rareCells}</div></div>
-    <div class="field full"><div class="lab">📕 弱點字（抽考錯過的字，點念音）</div><div style="margin-top:6px">${weakHTML}</div></div>
+    <div class="field full"><div class="lab">📕 弱點字（抽考錯過的字，點唸音）</div><div style="margin-top:6px">${weakHTML}</div></div>
     <div class="field full"><div class="lab">🏅 成就</div>${achvHTML}</div>
     <div class="navrow"><button class="btn btn-diamond" id="reportBtn">📊 各課表現</button><button class="btn btn-stone" id="sback">◀ 返回</button></div></div>`;
   document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ch);});
@@ -508,7 +508,7 @@ function viewReport(){
     const rads={}; wrong.forEach(ch=>{ const c=l.chars.find(x=>x.char===ch); if(c) rads[c.radical]=(rads[c.radical]||0)+1; });
     const radList=Object.keys(rads).length? Object.entries(rads).sort((a,b)=>b[1]-a[1]).map(e=>`<span class="tag">${esc(e[0])}部 ×${e[1]}</span>`).join("") : '<span style="color:#8a7c5a">—</span>';
     return `<div class="field full"><div class="lab">第${l.id}課 ${esc(l.title)} ‧ 正確率 ${acc===null?'尚未抽考':acc+'%'}</div>
-      <div style="font-size:13px;margin-top:4px"><b>不熟的字</b>（點念音）：${wchips}</div>
+      <div style="font-size:13px;margin-top:4px"><b>不熟的字</b>（點唸音）：${wchips}</div>
       <div class="tagrow" style="margin-top:4px"><b style="font-size:13px">不熟部首：</b>${radList}</div></div>`; }).join("");
   elView.innerHTML=`<div class="card block" style="text-align:left">
     <div class="q-prompt">📊 各課表現（老師診斷用）</div>${rows}
@@ -767,14 +767,14 @@ function viewHelp(){
       首頁選「年級」→ 選「課」（共 12 關）→ 上方切「📖 複習」或「📝 抽考」。</div>
     <div class="field full"><div class="lab">📖 複習模式（學生自學）</div>
       ‧ 每個生字看：注音、部首、筆畫、造詞、造句<br>
-      ‧ <b>破音字（多音字）</b>會多一張卡，列出不同詞的不同念法（如「綠色 ㄌㄩˋ／鴨綠江 ㄌㄨˋ」），可點詞念音<br>
-      ‧ 點「大字」念該字；點「造詞 / 造句」念整句（台灣國語發音）<br>
+      ‧ <b>破音字（多音字）</b>會多一張卡，列出不同詞的不同唸法（如「綠色 ㄌㄩˋ／鴨綠江 ㄌㄨˋ」），可點詞唸音<br>
+      ‧ 點「大字」唸該字；點「造詞 / 造句」唸整句（台灣國語發音）<br>
       ‧ 按「✍️ 看筆順」看一筆一畫怎麼寫（田字格動畫）<br>
       ‧ 用「◀ 上一個 / 下一個 ▶」換字，看過的字會記進度、得 XP<br>
       ‧ 複習頁會列出<b>本課不熟的字</b>（抽考答對就自動消失）<br>
       ‧ 上方「◀ 返回課程列表」可快速回到課別清單</div>
     <div class="field full"><div class="lab">📝 抽考模式（老師主導）</div>
-      ‧ 勾選題型：念注音／答部首／答筆畫／聽音寫字／造詞造句／<b>多音字念讀音</b><br>
+      ‧ 勾選題型：唸注音／答部首／答筆畫／聽音寫字／造詞造句／<b>多音字唸讀音</b><br>
       ‧ 「多音字」題只會考有破音字的字（自動跳過沒破音的）<br>
       ‧ 每題有「生詞提示」（例：ㄊㄢˋ險）幫學生定位是哪個字<br>
       ‧ 答案被方塊蓋住，<b>老師點一下方塊「挖開」</b>看答案、再點一下蓋回（學生看不到）<br>
@@ -782,7 +782,7 @@ function viewHelp(){
       ‧ 答錯的字自動進「錯題本」，可設「只考錯題本」「隨機出題」</div>
     <div class="field full"><div class="lab">📝 句型練習（照樣造句）</div>
       ‧ 首頁點「📝 句型練習」進入<br>
-      ‧ <b>看句型</b>：10 種常用句型（又…又…、像…一樣、因為…所以……），每種附原創長句範例，可點句念音<br>
+      ‧ <b>看句型</b>：10 種常用句型（又…又…、像…一樣、因為…所以……），每種附原創長句範例，可點句唸音<br>
       ‧ <b>照樣造句抽考</b>：出一個句型，學生照樣造一個<b>超過 16 字</b>的長句子，老師按答對／答錯<br>
       ‧ 用意是帶學生把句子寫得更完整、更長</div>
     <div class="field full"><div class="lab">🐉 範圍挑戰（跨課複習 / 解鎖稀有生物）</div>
@@ -807,7 +807,7 @@ function viewHelp(){
 }
 
 // ====== 多音字工具 ======
-// polyphone 格式：「詞 注音 ‧ 詞 注音」，拆成小卡；念音取 / 前第一個詞
+// polyphone 格式：「詞 注音 ‧ 詞 注音」，拆成小卡；唸音取 / 前第一個詞
 function polyTags(poly){
   return poly.split("‧").map(s=>s.trim()).filter(Boolean).map(seg=>{
     const i=seg.lastIndexOf(" ");
@@ -849,7 +849,7 @@ function viewPatterns(){
 function renderPatternList(){
   const cards=PATTERNS.map((pt,i)=>`<div class="card block" style="margin-bottom:10px;text-align:left">
     <div class="q-prompt" style="margin:0 0 6px">${i+1}. 句型：<b>${esc(pt.p)}</b></div>
-    <div class="field full"><div class="lab">範例（點句念音 🔊）</div><div class="val pex" data-ex="${esc(pt.ex)}" style="font-weight:600;cursor:pointer">${esc(pt.ex)}</div></div>
+    <div class="field full"><div class="lab">範例（點句唸音 🔊）</div><div class="val pex" data-ex="${esc(pt.ex)}" style="font-weight:600;cursor:pointer">${esc(pt.ex)}</div></div>
     <div class="field full"><div class="lab">換你照樣造（要超過 16 個字喔）</div><div class="val">${esc(pt.blank)}</div></div></div>`).join("");
   document.getElementById("psub").innerHTML=`<div class="hint" style="margin-bottom:8px">看範例，學會用這個句型造出長長的句子（超過 16 字）</div>${cards}`;
   document.querySelectorAll(".pex").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ex);});
@@ -864,7 +864,7 @@ function renderPatternCard(){
     <div class="hud"><span class="hearts">${hearts}</span><span class="expbar"><i style="width:${pct}%"></i></span><span class="hudtxt">第 ${Q.idx+1}/${total} ‧ ❌${Q.no}</span></div>
     <div class="q-prompt">請用這個句型，造一個<b>超過 16 個字</b>的句子</div>
     <div class="char-big kai" style="font-size:30px">${esc(pt.p)}</div>
-    <div class="field full" style="margin-top:10px"><div class="lab">老師示範（點句念音 🔊）</div><div class="val pex" data-ex="${esc(pt.ex)}" style="font-weight:600;cursor:pointer">${esc(pt.ex)}</div></div>
+    <div class="field full" style="margin-top:10px"><div class="lab">老師示範（點句唸音 🔊）</div><div class="val pex" data-ex="${esc(pt.ex)}" style="font-weight:600;cursor:pointer">${esc(pt.ex)}</div></div>
     <div class="judge"><button class="btn btn-green" id="pok">答對 ✓</button><button class="btn btn-red" id="pno">答錯 ✗</button></div>
     <div class="navrow"><button class="btn btn-stone" id="pstop">結束</button></div>
     <div class="hint">學生照樣造一個句子，老師按「答對／答錯」</div></div>`;
@@ -980,18 +980,18 @@ function renderReview(){
   const words=c.words.map(w=>`<span class="tag" data-say="${esc(w)}">${esc(w)}</span>`).join("");
   const _wrong = (!S.range)? (store.wrong[S.gi+"|"+S.li]||[]) : [];
   const wrongSec = _wrong.length? `<div class="field full"><div class="lab">📕 本課不熟的字（抽考答對就自動消失）</div><div class="tagrow" style="margin-top:4px">${_wrong.map(ch=>`<span class="wrongchip" data-ch="${esc(ch)}">${esc(ch)}</span>`).join("")}</div></div>` : "";
-  const polySec = c.polyphone ? `<div class="field full"><div class="lab">🔤 多音字「${esc(c.char)}」（不同詞不同念法，點詞念音）</div><div class="tagrow">${polyTags(c.polyphone)}</div></div>` : "";
+  const polySec = c.polyphone ? `<div class="field full"><div class="lab">🔤 多音字「${esc(c.char)}」（不同詞不同唸法，點詞唸音）</div><div class="tagrow">${polyTags(c.polyphone)}</div></div>` : "";
   document.getElementById("sub").innerHTML=`<div class="card block">
     <div class="charrow">
-      <div><div class="char-big kai" id="bigChar">${esc(c.char)}</div><div class="spk">👆 點字念給我聽</div>
+      <div><div class="char-big kai" id="bigChar">${esc(c.char)}</div><div class="spk">👆 點字唸給我聽</div>
         <button class="btn btn-diamond" id="strokeBtn" style="font-size:14px;padding:6px 14px;margin-top:8px;width:auto">✍️ 看筆順</button></div>
       <div><div class="zhuyin">${esc(c.zhuyin)}</div></div>
     </div>
     <div class="fields">
       <div class="field"><div class="lab">部首</div><div class="val kai">${esc(c.radical)}</div></div>
       <div class="field"><div class="lab">筆畫</div><div class="val">${c.strokes} 畫</div></div>
-      <div class="field full"><div class="lab">造詞（點詞念音）</div><div class="tagrow">${words}</div></div>
-      <div class="field full"><div class="lab">造句（點句念音 🔊）</div><div class="val" id="sentSay" style="font-weight:600; cursor:pointer">${esc(c.sentence)}</div></div>
+      <div class="field full"><div class="lab">造詞（點詞唸音）</div><div class="tagrow">${words}</div></div>
+      <div class="field full"><div class="lab">造句（點句唸音 🔊）</div><div class="val" id="sentSay" style="font-weight:600; cursor:pointer">${esc(c.sentence)}</div></div>
       ${polySec}
     </div>
     ${wrongSec}
@@ -1019,11 +1019,11 @@ function renderReview(){
 // ---- 抽考設定 ----
 const QTYPES=[
   {k:"word2char",t:"聽注音 → 寫字", show:c=>c.zhuyin, ans:c=>c.char, say:c=>c.char},
-  {k:"zhuyin", t:"看字 → 念注音", show:c=>c.char, ans:c=>c.zhuyin},
+  {k:"zhuyin", t:"看字 → 唸注音", show:c=>c.char, ans:c=>c.zhuyin},
   {k:"radical",t:"看字 → 答部首", show:c=>c.char, ans:c=>c.radical+" 部"},
   {k:"strokes",t:"看字 → 答筆畫", show:c=>c.char, ans:c=>c.strokes+" 畫"},
   {k:"makeword",t:"看字 → 造詞/造句（口頭）", show:c=>c.char, ans:c=>c.words.join("、")+"／"+c.sentence},
-  {k:"poly",t:"多音字 → 念對讀音", show:c=>c.char, ans:c=>c.polyphone, only:c=>!!c.polyphone},
+  {k:"poly",t:"多音字 → 唸對讀音", show:c=>c.char, ans:c=>c.polyphone, only:c=>!!c.polyphone},
 ];
 function renderQuizSetup(){
   const l=lesson();
@@ -1039,7 +1039,7 @@ function renderQuizSetup(){
       <button class="btn btn-stone" id="back">◀ 返回</button>
       <button class="btn btn-gold" id="start">開始抽考 ▶</button>
     </div>
-    <div class="hint">抽考時：按住右上角 🔑 才看得到答案，放手就蓋回；老師按「答對／答錯」記分</div></div>`;
+    <div class="hint">抽考時：點一下方塊就挖開答案，再點一下蓋回；老師按「答對／答錯」記分</div></div>`;
   document.getElementById("back").onclick=()=>{ if(S.range) viewRange(); else { S.mode="review"; viewStudy(); } };
   document.getElementById("start").onclick=()=>{
     const types=[...document.querySelectorAll(".qt:checked")].map(x=>x.value);
@@ -1075,7 +1075,7 @@ function renderQuizCard(){
     </div>
     <div class="q-prompt">${esc(q.t)}</div>
     <div class="${isChar?'char-big kai':'zhuyin'}" id="qShow" style="cursor:pointer">${esc(showVal)}</div>
-    <div class="spk">👆 點題目可念音</div>
+    <div class="spk">👆 點題目可唸音</div>
     ${hintHTML}
     <div style="margin-top:6px"><div class="cover-wrap">
       <div class="answer-box"><span class="${q.k==='word2char'?'char-big kai':(q.k==='poly'?'kai':'zhuyin')}" style="font-size:${(q.k==='makeword'||q.k==='poly')?'18px':''}">${esc(ansVal)}</span></div>
@@ -1134,7 +1134,7 @@ function renderQuizDone(){
     const chips=wlist.length? wlist.map(ch=>{const cc=lc.find(x=>x.char===ch); const sy=cc?(cc.say||ch):ch;
         return `<span class="wrongchip" data-ch="${esc(ch)}" data-say="${esc(sy)}">${esc(ch)}</span>`;}).join("")
                             : `<div class="empty">這關錯題本是空的，太棒了！🏆</div>`;
-    wrongSec=`<div class="field full"><div class="lab">📕 本關錯題本（點字念音）</div><div style="margin-top:6px">${chips}</div></div>`; }
+    wrongSec=`<div class="field full"><div class="lab">📕 本關錯題本（點字唸音）</div><div style="margin-top:6px">${chips}</div></div>`; }
   let rangeNote="";
   if(S.range){ const m=milestoneOf(S.range.from,S.range.to);
     rangeNote=`<div class="statline">範圍挑戰：${esc(S.range.label)}${m?(pct===100?(store.rares[m.key]?' ‧ 已解鎖 '+m.name:''):' ‧ 全對解鎖 '+m.name):''}</div>`; }
