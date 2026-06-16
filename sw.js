@@ -1,4 +1,4 @@
-const CACHE = "cwq-v24";
+const CACHE = "cwq-v25";
 const ASSETS = ["./", "index.html", "data/words.js", "data/strokes.js", "hanzi-writer.min.js", "manifest.webmanifest", "audio/bgm.mp3"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(()=>{}));

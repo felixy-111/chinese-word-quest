@@ -768,6 +768,7 @@ function viewHelp(){
     <div class="field full"><div class="lab">📖 複習模式（學生自學）</div>
       ‧ 每個生字看：注音、部首、筆畫、造詞、造句<br>
       ‧ <b>破音字（多音字）</b>會多一張卡，列出不同詞的不同唸法（如「綠色 ㄌㄩˋ／鴨綠江 ㄌㄨˋ」），可點詞唸音<br>
+      ‧ 複習頁下方有<b>本課句型</b>（該課專屬的照樣造句範例，詳見下方說明）<br>
       ‧ 點「大字」唸該字；點「造詞 / 造句」唸整句（台灣國語發音）<br>
       ‧ 按「✍️ 看筆順」看一筆一畫怎麼寫（田字格動畫）<br>
       ‧ 用「◀ 上一個 / 下一個 ▶」換字，看過的字會記進度、得 XP<br>
@@ -780,10 +781,10 @@ function viewHelp(){
       ‧ 答案被方塊蓋住，<b>老師點一下方塊「挖開」</b>看答案、再點一下蓋回（學生看不到）<br>
       ‧ 老師按「答對 ✓ / 答錯 ✗」記分；連續答對會「連擊」<br>
       ‧ 答錯的字自動進「錯題本」，可設「只考錯題本」「隨機出題」</div>
-    <div class="field full"><div class="lab">📝 句型練習（照樣造句）</div>
-      ‧ 首頁點「📝 句型練習」進入<br>
-      ‧ <b>看句型</b>：10 種常用句型（又…又…、像…一樣、因為…所以……），每種附原創長句範例，可點句唸音<br>
-      ‧ <b>照樣造句抽考</b>：出一個句型，學生照樣造一個<b>超過 16 字</b>的長句子，老師按答對／答錯<br>
+    <div class="field full"><div class="lab">📝 本課句型（照樣造句）</div>
+      ‧ 在<b>複習頁</b>會顯示<b>該課專屬的句型</b>（例如第十二課的「…竟然…」「…不過…」）<br>
+      ‧ 每個句型附原創長句範例，可點句唸音；學生照樣造一個<b>至少 15 字</b>的長句子<br>
+      ‧ 句型取自康軒自修「造句練習／句型練習」段，例句皆原創<br>
       ‧ 用意是帶學生把句子寫得更完整、更長</div>
     <div class="field full"><div class="lab">🐉 範圍挑戰（跨課複習 / 解鎖稀有生物）</div>
       ‧ 課次地圖上方點「🐉 範圍挑戰」<br>
@@ -817,74 +818,18 @@ function polyTags(poly){
   }).join("");
 }
 
-// ====== 句型練習（照樣造句）======
-// 取二年級標準句型「結構」，例句全為原創（不抄康軒原文），版權安全
-const PATTERNS=[
-  {p:"又…又…", ex:"夏天剛摘下來的西瓜又大又甜，全家人吃得開開心心。", blank:"天氣又（ ）又（ ）。"},
-  {p:"像…一樣", ex:"天空中那一彎月亮像鐮刀一樣，彎彎地掛在山頭上。", blank:"（ ）像（ ）一樣。"},
-  {p:"一邊…一邊…", ex:"哥哥每天早上都一邊聽音樂，一邊慢慢地走路去上學。", blank:"（ ）一邊（ ）一邊（ ）。"},
-  {p:"因為…所以…", ex:"因為今天下了一整天的大雨，所以我們只好留在家裡看書。", blank:"因為（ ），所以（ ）。"},
-  {p:"越來越…", ex:"春天到了以後，公園裡的花開得越來越多，顏色也越來越漂亮。", blank:"（ ）越來越（ ）。"},
-  {p:"一…就…", ex:"弟弟每天一放學回到家，就馬上打開書包認真寫功課。", blank:"（ ）一（ ）就（ ）。"},
-  {p:"把…（把字句）", ex:"請你看完書以後，記得把桌上的故事書放回書架上。", blank:"請把（ ）（ ）。"},
-  {p:"好像…", ex:"黃昏時天空飄著的雲朵，好像一群正在散步的綿羊。", blank:"（ ）好像（ ）。"},
-  {p:"先…再…", ex:"吃飯以前我們要先把手洗乾淨，再坐到位子上準備吃飯。", blank:"先（ ），再（ ）。"},
-  {p:"如果…就…", ex:"如果明天天氣晴朗又涼爽，我們全家就一起去山上野餐。", blank:"如果（ ），就（ ）。"},
-];
-function viewPatterns(){
-  document.getElementById("crumb").textContent="句型練習";
-  S.range=null;
-  elView.innerHTML=`
-    <div style="margin-bottom:8px"><button class="btn btn-stone" id="pBack" style="font-size:14px;padding:7px 14px;width:auto">◀ 返回首頁</button></div>
-    <div class="modeswitch">
-      <button class="btn btn-grass" id="pView">📖 看句型</button>
-      <button class="btn btn-gold" id="pQuizBtn">📝 照樣造句抽考</button>
-    </div><div id="psub"></div>`;
-  const setB=(m)=>{ document.getElementById("pView").classList.toggle("dim",m!=="view"); document.getElementById("pQuizBtn").classList.toggle("dim",m!=="quiz"); };
-  document.getElementById("pBack").onclick=()=>{sClick(); viewHome();};
-  document.getElementById("pView").onclick=()=>{sClick(); setB("view"); renderPatternList();};
-  document.getElementById("pQuizBtn").onclick=()=>{sClick(); setB("quiz"); startPatternQuiz();};
-  setB("view"); renderPatternList();
-}
-function renderPatternList(){
-  const cards=PATTERNS.map((pt,i)=>`<div class="card block" style="margin-bottom:10px;text-align:left">
-    <div class="q-prompt" style="margin:0 0 6px">${i+1}. 句型：<b>${esc(pt.p)}</b></div>
-    <div class="field full"><div class="lab">範例（點句唸音 🔊）</div><div class="val pex" data-ex="${esc(pt.ex)}" style="font-weight:600;cursor:pointer">${esc(pt.ex)}</div></div>
-    <div class="field full"><div class="lab">換你照樣造（要超過 16 個字喔）</div><div class="val">${esc(pt.blank)}</div></div></div>`).join("");
-  document.getElementById("psub").innerHTML=`<div class="hint" style="margin-bottom:8px">看範例，學會用這個句型造出長長的句子（超過 16 字）</div>${cards}`;
-  document.querySelectorAll(".pex").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ex);});
-}
-function startPatternQuiz(){ S.pq={queue:shuffle(PATTERNS.slice()), idx:0, ok:0, no:0}; renderPatternCard(); }
-function renderPatternCard(){
-  const Q=S.pq;
-  if(Q.idx>=Q.queue.length) return renderPatternDone();
-  const pt=Q.queue[Q.idx], total=Q.queue.length, pct=Math.round(Q.idx/total*100);
-  const hearts="❤️".repeat(Math.min(Q.ok,10))||"—";
-  document.getElementById("psub").innerHTML=`<div class="card block">
-    <div class="hud"><span class="hearts">${hearts}</span><span class="expbar"><i style="width:${pct}%"></i></span><span class="hudtxt">第 ${Q.idx+1}/${total} ‧ ❌${Q.no}</span></div>
-    <div class="q-prompt">請用這個句型，造一個<b>超過 16 個字</b>的句子</div>
-    <div class="char-big kai" style="font-size:30px">${esc(pt.p)}</div>
-    <div class="field full" style="margin-top:10px"><div class="lab">老師示範（點句唸音 🔊）</div><div class="val pex" data-ex="${esc(pt.ex)}" style="font-weight:600;cursor:pointer">${esc(pt.ex)}</div></div>
-    <div class="judge"><button class="btn btn-green" id="pok">答對 ✓</button><button class="btn btn-red" id="pno">答錯 ✗</button></div>
-    <div class="navrow"><button class="btn btn-stone" id="pstop">結束</button></div>
-    <div class="hint">學生照樣造一個句子，老師按「答對／答錯」</div></div>`;
-  document.querySelector(".pex").onclick=()=>{sClick(); speak(pt.ex);};
-  document.getElementById("pok").onclick=()=>{Q.ok++; sOk(); addXP(5); buddyReact('happy'); Q.idx++; renderPatternCard();};
-  document.getElementById("pno").onclick=()=>{Q.no++; sNo(); buddyReact('sad'); Q.idx++; renderPatternCard();};
-  document.getElementById("pstop").onclick=()=>renderPatternDone();
-}
-function renderPatternDone(){
-  const Q=S.pq, total=Q.ok+Q.no, pct=total?Math.round(Q.ok/total*100):0;
-  sWin();
-  const medal = pct===100?"🏆 句型高手！":(pct>=60?"💪 不錯喔！":"🌱 多練幾次！");
-  document.getElementById("psub").innerHTML=`<div class="card block"><div class="bigstat">
-    <div class="levelup">${medal}</div><div class="num">${pct}分</div>
-    <div class="expbar" style="max-width:320px;margin:8px auto"><i style="width:${pct}%"></i></div>
-    <div class="statline">答對 ${Q.ok} ‧ 答錯 ${Q.no}（共 ${total} 題）</div></div>
-    <div class="navrow"><button class="btn btn-gold" id="pagain">再練一次</button><button class="btn btn-stone" id="pdone">返回首頁</button></div></div>`;
-  document.getElementById("pagain").onclick=()=>{sClick(); startPatternQuiz();};
-  document.getElementById("pdone").onclick=()=>{sClick(); viewHome();};
-}
+// ====== 每課句型（綁定各課，放進該課複習頁）======
+// 來源：康軒自修「造句練習／句型練習」段 → 取句型「結構」（非版權），例句全為原創長句（≥15字）
+// 結構：LESSON_PATTERNS[年級grade][課id] = [{p:句型, ex:原創範例, blank:仿寫提示}]
+const LESSON_PATTERNS = {
+  "二下": {
+    12: [
+      {p:"…竟然…", ex:"我們找了一整個下午，竟然在書包最底下發現那本不見的故事書。", blank:"（ ）竟然（ ）。"},
+      {p:"…不過…", ex:"弟弟一直說他不怕打針，不過真的輪到他的時候，眼淚還是掉了下來。", blank:"（ ），不過（ ）。"},
+    ],
+  },
+};
+function lessonPatterns(){ const g=grade(); return (LESSON_PATTERNS[g.grade]||{})[lesson().id]||null; }
 
 // ====== 首頁 ======
 function viewHome(){
@@ -897,11 +842,8 @@ function viewHome(){
     <div class="logo"><span class="torch">🔥</span>生字大冒險<span class="torch">🔥</span></div>
     <div class="sub">⛏️ 一起挖出每一課的生字寶藏！</div>
     <div class="grade-grid">${cards}</div>
-    <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <button class="btn btn-gold" id="patBtn">📝 句型練習</button>
-      <button class="btn btn-wood" id="helpBtn">📖 使用說明</button></div></div>`;
+    <div style="margin-top:18px"><button class="btn btn-wood" id="helpBtn">📖 使用說明</button></div></div>`;
   elView.querySelectorAll(".grade-card[data-gi]").forEach(c=>c.onclick=()=>{S.gi=+c.dataset.gi; sPlace(); viewLessons();});
-  document.getElementById("patBtn").onclick=()=>{sClick(); viewPatterns();};
   document.getElementById("helpBtn").onclick=()=>{sClick(); viewHelp();};
 }
 
@@ -981,6 +923,8 @@ function renderReview(){
   const _wrong = (!S.range)? (store.wrong[S.gi+"|"+S.li]||[]) : [];
   const wrongSec = _wrong.length? `<div class="field full"><div class="lab">📕 本課不熟的字（抽考答對就自動消失）</div><div class="tagrow" style="margin-top:4px">${_wrong.map(ch=>`<span class="wrongchip" data-ch="${esc(ch)}">${esc(ch)}</span>`).join("")}</div></div>` : "";
   const polySec = c.polyphone ? `<div class="field full"><div class="lab">🔤 多音字「${esc(c.char)}」（不同詞不同唸法，點詞唸音）</div><div class="tagrow">${polyTags(c.polyphone)}</div></div>` : "";
+  const lp = (!S.range)? lessonPatterns() : null;
+  const patSec = (lp&&lp.length)? `<div class="field full"><div class="lab">📝 本課句型（照樣造句，至少 15 字）</div>${lp.map(pt=>`<div style="margin-top:6px"><b style="color:#1F3A5F">${esc(pt.p)}</b><div class="val pex" data-ex="${esc(pt.ex)}" style="font-weight:600;cursor:pointer;margin:2px 0">🔊 ${esc(pt.ex)}</div><div style="font-size:13px;color:#666">換你造：${esc(pt.blank)}</div></div>`).join("")}</div>` : "";
   document.getElementById("sub").innerHTML=`<div class="card block">
     <div class="charrow">
       <div><div class="char-big kai" id="bigChar">${esc(c.char)}</div><div class="spk">👆 點字唸給我聽</div>
@@ -995,6 +939,7 @@ function renderReview(){
       ${polySec}
     </div>
     ${wrongSec}
+    ${patSec}
     <div class="navrow">
       <button class="btn btn-stone" id="prev">◀ 上一個</button>
       <span class="counter">${S.ci+1} / ${chars.length}</span>
@@ -1006,6 +951,7 @@ function renderReview(){
   document.getElementById("sentSay").onclick=()=>{sClick(); speak(c.sentence);};
   document.querySelectorAll(".tag").forEach(t=>t.onclick=()=>{sClick(); speak(t.dataset.say);});
   document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ch);});
+  document.querySelectorAll(".pex").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ex);});
   document.getElementById("prev").onclick=()=>{ if(S.ci>0){S.ci--; sClick(); renderReview();} };
   document.getElementById("next").onclick=()=>{
     if(S.ci<chars.length-1){S.ci++; sClick(); renderReview();}
