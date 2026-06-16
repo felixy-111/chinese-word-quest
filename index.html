@@ -112,6 +112,7 @@ header.bar .sp{flex:1;}
 details.adv{margin-top:12px; background:#f3eeda; border-radius:6px; padding:8px 12px; text-align:left;}
 details.adv summary{cursor:pointer; font-weight:800; color:var(--dirt-d);}
 details.adv .ac{margin-top:8px; font-size:15px; line-height:1.6;}
+details.patbox:not([open]) > :not(summary){display:none !important;}
 .navrow{display:flex; align-items:center; gap:10px; margin-top:16px;}
 .navrow .btn{flex:1;}
 .counter{font-weight:800; color:var(--dirt-d); min-width:70px; text-align:center;}
@@ -782,7 +783,7 @@ function viewHelp(){
       ‧ 老師按「答對 ✓ / 答錯 ✗」記分；連續答對會「連擊」<br>
       ‧ 答錯的字自動進「錯題本」，可設「只考錯題本」「隨機出題」</div>
     <div class="field full"><div class="lab">📝 本課句型（照樣造句）</div>
-      ‧ 在<b>複習頁</b>會顯示<b>該課專屬的句型</b>（例如第十二課的「…竟然…」「…不過…」）<br>
+      ‧ 在<b>複習頁</b>會顯示<b>該課專屬的句型</b>（例如第十二課的「…竟然…」「…不過…」），<b>預設收起、點標題才展開</b><br>
       ‧ 每個句型附原創長句範例，可點句唸音；學生照樣造一個<b>至少 15 字</b>的長句子<br>
       ‧ 句型取自康軒自修「造句練習／句型練習」段，例句皆原創<br>
       ‧ 用意是帶學生把句子寫得更完整、更長</div>
@@ -943,7 +944,7 @@ function renderReview(){
   const wrongSec = _wrong.length? `<div class="field full"><div class="lab">📕 本課不熟的字（抽考答對就自動消失）</div><div class="tagrow" style="margin-top:4px">${_wrong.map(ch=>`<span class="wrongchip" data-ch="${esc(ch)}">${esc(ch)}</span>`).join("")}</div></div>` : "";
   const polySec = c.polyphone ? `<div class="field full"><div class="lab">🔤 多音字「${esc(c.char)}」（不同詞不同唸法，點詞唸音）</div><div class="tagrow">${polyTags(c.polyphone)}</div></div>` : "";
   const lp = (!S.range)? lessonPatterns() : null;
-  const patSec = (lp&&lp.length)? `<div class="field full"><div class="lab">📝 本課句型（照樣造句，至少 15 字）</div>${lp.map(pt=>`<div style="margin-top:6px"><b style="color:#1F3A5F">${esc(pt.p)}</b><div class="val pex" data-ex="${esc(pt.ex)}" style="font-weight:600;cursor:pointer;margin:2px 0">🔊 ${esc(pt.ex)}</div><div style="font-size:13px;color:#666">換你造：${esc(pt.blank)}</div></div>`).join("")}</div>` : "";
+  const patSec = (lp&&lp.length)? `<details class="field full patbox"><summary style="cursor:pointer;font-weight:700;color:#1F3A5F;font-size:13px;list-style-position:inside;padding:2px 0">📝 本課句型（點開看照樣造句，至少 15 字）</summary>${lp.map(pt=>`<div style="margin-top:6px"><b style="color:#1F3A5F">${esc(pt.p)}</b><div class="val pex" data-ex="${esc(pt.ex)}" style="font-weight:600;cursor:pointer;margin:2px 0">🔊 ${esc(pt.ex)}</div><div style="font-size:13px;color:#666">換你造：${esc(pt.blank)}</div></div>`).join("")}</details>` : "";
   document.getElementById("sub").innerHTML=`<div class="card block">
     <div class="charrow">
       <div><div class="char-big kai" id="bigChar">${esc(c.char)}</div><div class="spk">👆 點字唸給我聽</div>
