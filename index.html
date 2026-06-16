@@ -35,7 +35,7 @@ body{
 .cloud{position:absolute; width:60px; height:18px; background:#fff; border-radius:3px;
   box-shadow: 22px -12px 0 0 #fff, 44px 0 0 0 #fff, 22px 0 0 8px #fff, -10px 0 0 0 #fff;
   opacity:.85; animation:drift linear infinite;}
-@keyframes drift{ from{transform:translateX(-140px);} to{transform:translateX(110vw);} }
+@keyframes drift{ from{transform:translateX(-140px) scale(var(--s,1));} to{transform:translateX(110vw) scale(var(--s,1));} }
 /* 地面草皮條（固定底部） */
 .ground{position:fixed; left:0; right:0; bottom:0; height:46px; z-index:-1; pointer-events:none;
   background:repeating-linear-gradient(90deg,var(--grass) 0 24px,var(--grass-l) 24px 48px);
@@ -324,12 +324,13 @@ let S = {gi:0, li:0, mode:"review", ci:0, quiz:null, range:null};
 // ====== 像素雲 ======
 (function makeClouds(){
   const sky=document.getElementById("sky");
-  for(let i=0;i<5;i++){
+  for(let i=0;i<7;i++){
     const c=document.createElement("div"); c.className="cloud";
-    c.style.top=(6+i*16)+"%";
-    c.style.animationDuration=(38+i*11)+"s";
-    c.style.animationDelay=(-i*9)+"s";
-    c.style.transform="scale("+(0.7+Math.random()*0.8)+")";
+    c.style.top=(2+Math.random()*42).toFixed(1)+"%";                 // 高度隨機（上半天空）
+    c.style.setProperty("--s",(0.5+Math.random()*1.1).toFixed(2));   // 大小隨機 0.5~1.6（飛行時保持）
+    c.style.animationDuration=(26+Math.random()*44).toFixed(1)+"s";  // 速度隨機 26~70s
+    c.style.animationDelay=(-Math.random()*45).toFixed(1)+"s";       // 起始錯開
+    c.style.opacity=(0.68+Math.random()*0.24).toFixed(2);           // 濃淡略不同
     sky.appendChild(c);
   }
 })();
@@ -738,11 +739,12 @@ function spawnCritters(){ const box=document.getElementById("critters"); if(!box
   list.forEach((svg,i)=>{ const c=document.createElement("div"); c.className="critter"; c.innerHTML=svg;
     c.style.animationDuration=(12+i*2.2)+"s"; c.style.animationDelay=(-i*3.2)+"s"; box.appendChild(c); }); }
 function spawnBirds(){ const box=document.getElementById("birds"); if(!box) return; box.innerHTML="";
-  const n=birdsUnlocked(); let items=[];
+  const n=birdsUnlocked();
+  let items=[sparrowSVG()];                       // 預設固定一隻麻雀在飛（不靠解鎖）
   for(let i=0;i<n;i++) items.push(BIRDS[i].svg());
   MILESTONES.filter(m=>m.sky&&store.rares[m.key]).forEach(m=>items.push('<span class="rare">'+m.svg()+'</span>'));
-  items.forEach((svg,i)=>{ const b=document.createElement("div"); b.className="bird"; b.innerHTML=svg;
-    b.style.top=(7+i*9)+"%"; b.style.animationDuration=(17+i*3.5)+"s"; b.style.animationDelay=(-i*5)+"s"; box.appendChild(b); }); }
+  items.forEach((svg)=>{ const b=document.createElement("div"); b.className="bird"; b.innerHTML=svg;
+    b.style.top=(5+Math.random()*32).toFixed(1)+"%"; b.style.animationDuration=(15+Math.random()*13).toFixed(1)+"s"; b.style.animationDelay=(-Math.random()*14).toFixed(1)+"s"; box.appendChild(b); }); }
 function hideLoading(){ const l=document.getElementById("loading"); if(!l) return; l.classList.add("hide"); setTimeout(()=>l.remove(),600); }
 // 筆順動畫（hanzi-writer，自託管資料）
 let hw=null;
