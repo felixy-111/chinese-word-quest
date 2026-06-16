@@ -227,6 +227,8 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 @keyframes birdfly{ from{transform:translateX(-60px);} to{transform:translateX(105vw);} }
 .bird svg{display:block; animation:flap .32s ease-in-out infinite;}
 @keyframes flap{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-6px) rotate(2deg);}}
+.bird svg .wing{transform-box:fill-box; transform-origin:88% 80%; animation:wflap .2s ease-in-out infinite;}
+@keyframes wflap{0%,100%{transform:rotate(-40deg);}50%{transform:rotate(32deg);}}
 .rare{display:inline-block; filter:drop-shadow(0 0 5px rgba(255,216,61,.85));}
 #buddy{position:fixed; left:0; bottom:6px; z-index:5; pointer-events:none; animation:bwalk 22s linear infinite;}
 @keyframes bwalk{0%{transform:translateX(2vw);}48%{transform:translateX(82vw);}50%{transform:translateX(82vw) scaleX(-1);}98%{transform:translateX(2vw) scaleX(-1);}100%{transform:translateX(2vw);}}
@@ -633,32 +635,43 @@ function hedgehogSVG(){ return `<svg class="hop" viewBox="0 0 16 11" width="40" 
   <rect x="11" y="5" width="4" height="4" fill="#e8d0b0"/><rect x="14" y="6" width="1.5" height="1.5" fill="#3a2a1a"/><rect x="12" y="6" width="1" height="1" fill="#333"/>
   <rect x="4" y="9" width="1.6" height="1.8" fill="#6a5238"/><rect x="8" y="9" width="1.6" height="1.8" fill="#6a5238"/></svg>`; }
 // ── 天空鳥（自製，飛行）──
-function parrotSVG(){ return `<svg viewBox="0 0 16 14" width="40" height="35" shape-rendering="crispEdges">
-  <rect x="5" y="3" width="6" height="7" fill="#b8bcc0"/><rect x="7" y="0" width="2.5" height="3" fill="#f5d23a"/>
-  <rect x="6" y="3" width="5" height="4" fill="#e8e8ec"/><rect x="6" y="5" width="1.6" height="1.6" fill="#f0903a"/>
-  <rect x="7.4" y="4" width="1.2" height="1.2" fill="#222"/><rect x="5" y="4.5" width="1.5" height="1.5" fill="#f5b53a"/>
-  <rect x="10" y="5" width="3" height="3" fill="#9aa0a6"/><rect x="11" y="9" width="2" height="4" fill="#8a9096"/>
-  <rect x="7" y="10" width="1" height="2" fill="#d8a060"/><rect x="9" y="10" width="1" height="2" fill="#d8a060"/></svg>`; }
-function sparrowSVG(){ return `<svg viewBox="0 0 14 11" width="34" height="27" shape-rendering="crispEdges">
-  <rect x="3" y="3" width="6" height="5" fill="#9a7048"/><rect x="8" y="2" width="4" height="4" fill="#8a6038"/>
-  <rect x="9.5" y="3" width="1" height="1" fill="#222"/><rect x="11.5" y="3.5" width="1.5" height="1" fill="#e0a030"/>
-  <rect x="2" y="4" width="3" height="3" fill="#bfa078"/>
-  <rect x="3" y="8" width="1" height="2" fill="#c89030"/><rect x="6" y="8" width="1" height="2" fill="#c89030"/></svg>`; }
-function owlSVG(){ return `<svg viewBox="0 0 13 13" width="32" height="32" shape-rendering="crispEdges">
-  <rect x="2" y="2" width="9" height="9" fill="#8a6a48"/><rect x="2" y="1" width="2" height="2" fill="#6a4e30"/><rect x="9" y="1" width="2" height="2" fill="#6a4e30"/>
-  <rect x="3" y="4" width="3" height="3" fill="#f0e8d8"/><rect x="7" y="4" width="3" height="3" fill="#f0e8d8"/>
-  <rect x="4" y="5" width="1.4" height="1.4" fill="#222"/><rect x="8" y="5" width="1.4" height="1.4" fill="#222"/>
-  <rect x="6" y="6.5" width="1" height="1.2" fill="#e0a030"/></svg>`; }
-function swallowSVG(){ return `<svg viewBox="0 0 16 10" width="40" height="25" shape-rendering="crispEdges">
-  <rect x="5" y="3" width="6" height="4" fill="#2a3a5a"/><rect x="10" y="2" width="3" height="3" fill="#2a3a5a"/>
-  <rect x="11.5" y="3" width="1" height="1" fill="#fff"/><rect x="6" y="5" width="4" height="2" fill="#d09060"/>
-  <rect x="2" y="2" width="4" height="2" fill="#3a4a6a"/>
-  <rect x="0" y="4" width="3" height="1.5" fill="#2a3a5a"/><rect x="0" y="6.5" width="3" height="1.5" fill="#2a3a5a"/></svg>`; }
-function pigeonSVG(){ return `<svg viewBox="0 0 15 11" width="36" height="26" shape-rendering="crispEdges">
-  <rect x="3" y="3" width="6" height="5" fill="#b8c0cc"/><rect x="8" y="2" width="4" height="4" fill="#aeb6c2"/>
-  <rect x="9.5" y="3" width="1" height="1" fill="#c0392b"/><rect x="11.5" y="3.5" width="1.5" height="1" fill="#e0a030"/>
-  <rect x="2" y="4" width="3" height="3" fill="#9aa2ae"/>
-  <rect x="4" y="8" width="1" height="2" fill="#c0392b"/><rect x="7" y="8" width="1" height="2" fill="#c0392b"/></svg>`; }
+// 側飛模板：尾/身體/腹/頭/眼/喙 + g.wing 三段羽翼（CSS .wing 扇動）。各鳥換色＋特徵。
+function parrotSVG(){ return `<svg viewBox="0 0 16 12" width="42" height="32" shape-rendering="crispEdges">
+  <rect x="0" y="6.2" width="3.4" height="2.3" fill="#1f7a3a"/>
+  <rect x="3" y="5" width="6" height="4" fill="#3aaa55"/><rect x="3" y="7.4" width="6" height="1.6" fill="#7ad08a"/>
+  <rect x="8" y="4" width="4" height="4" fill="#3aaa55"/><rect x="8.4" y="2" width="1.6" height="2.2" fill="#f5d23a"/>
+  <rect x="9.6" y="5" width="1.1" height="1.1" fill="#1a1a1a"/>
+  <rect x="12" y="5.5" width="2.3" height="1.2" fill="#f0903a"/><rect x="11" y="6.6" width="1.4" height="1" fill="#c0392b"/>
+  <g class="wing"><rect x="5" y="2.4" width="3.6" height="2" fill="#2e8f48"/><rect x="3" y="2.9" width="4" height="1.9" fill="#46bf63"/><rect x="1.2" y="3.5" width="3" height="1.7" fill="#1f7a3a"/></g></svg>`; }
+function sparrowSVG(){ return `<svg viewBox="0 0 16 12" width="38" height="29" shape-rendering="crispEdges">
+  <rect x="0" y="6.2" width="3.4" height="2.3" fill="#6a5238"/>
+  <rect x="3" y="5" width="6" height="4" fill="#9a7048"/><rect x="3" y="7.4" width="6" height="1.6" fill="#b89066"/>
+  <rect x="8" y="4" width="4" height="4" fill="#8a6038"/>
+  <rect x="9.6" y="5" width="1.1" height="1.1" fill="#1a1a1a"/>
+  <rect x="12" y="5.5" width="2.3" height="1.2" fill="#e0a030"/>
+  <g class="wing"><rect x="5" y="2.4" width="3.6" height="2" fill="#b89868"/><rect x="3" y="2.9" width="4" height="1.9" fill="#cdb088"/><rect x="1.2" y="3.5" width="3" height="1.7" fill="#a98860"/></g></svg>`; }
+function owlSVG(){ return `<svg viewBox="0 0 16 12" width="38" height="29" shape-rendering="crispEdges">
+  <rect x="0" y="6.2" width="3.4" height="2.3" fill="#5a4430"/>
+  <rect x="3" y="5" width="6" height="4" fill="#8a6a48"/><rect x="3" y="7.4" width="6" height="1.6" fill="#cdb088"/>
+  <rect x="8" y="4" width="4" height="4" fill="#8a6a48"/>
+  <rect x="8" y="2.4" width="1.4" height="1.8" fill="#6a4e30"/><rect x="10.6" y="2.4" width="1.4" height="1.8" fill="#6a4e30"/>
+  <rect x="8.2" y="4.6" width="1.7" height="1.7" fill="#f0e8d8"/><rect x="8.7" y="5.1" width="1" height="1" fill="#1a1a1a"/>
+  <rect x="12" y="5.6" width="2" height="1.1" fill="#e0a030"/>
+  <g class="wing"><rect x="5" y="2.4" width="3.6" height="2" fill="#6a4e30"/><rect x="3" y="2.9" width="4" height="1.9" fill="#9a7a54"/><rect x="1.2" y="3.5" width="3" height="1.7" fill="#5a4430"/></g></svg>`; }
+function swallowSVG(){ return `<svg viewBox="0 0 16 12" width="40" height="30" shape-rendering="crispEdges">
+  <rect x="0" y="6.2" width="3.4" height="2.3" fill="#2a3a5a"/><rect x="0" y="4.7" width="3" height="1.2" fill="#2a3a5a"/><rect x="0" y="8" width="3" height="1.2" fill="#2a3a5a"/>
+  <rect x="3" y="5" width="6" height="4" fill="#2a3a5a"/><rect x="3" y="7.4" width="6" height="1.6" fill="#eef2f7"/>
+  <rect x="8" y="4" width="4" height="4" fill="#2a3a5a"/>
+  <rect x="9.6" y="5" width="1.1" height="1.1" fill="#0e1622"/>
+  <rect x="12" y="5.5" width="2.3" height="1.2" fill="#333"/>
+  <g class="wing"><rect x="5" y="2.4" width="3.6" height="2" fill="#3a4a6a"/><rect x="3" y="2.9" width="4" height="1.9" fill="#243454"/><rect x="1.2" y="3.5" width="3" height="1.7" fill="#1c2842"/></g></svg>`; }
+function pigeonSVG(){ return `<svg viewBox="0 0 16 12" width="40" height="30" shape-rendering="crispEdges">
+  <rect x="0" y="6.2" width="3.4" height="2.3" fill="#7a828e"/>
+  <rect x="3" y="5" width="6" height="4" fill="#aeb6c2"/><rect x="3" y="7.4" width="6" height="1.6" fill="#d2d8e0"/>
+  <rect x="8" y="4" width="4" height="4" fill="#9aa2ae"/>
+  <rect x="9.6" y="5" width="1.1" height="1.1" fill="#1a1a1a"/>
+  <rect x="12" y="5.5" width="2.3" height="1.2" fill="#e0a030"/><rect x="11.4" y="5" width="1" height="0.8" fill="#c0392b"/>
+  <g class="wing"><rect x="5" y="2.4" width="3.6" height="2" fill="#8a93a0"/><rect x="3" y="2.9" width="4" height="1.9" fill="#c2c8d2"/><rect x="1.2" y="3.5" width="3" height="1.7" fill="#7a828e"/></g></svg>`; }
 // 生物資料（index 對應課序）
 const GROUND_BASE=[chickenSVG, pigSVG, cowSVG];
 const GROUND_UNLOCK=[
