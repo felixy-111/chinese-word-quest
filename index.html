@@ -281,7 +281,6 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <div id="buddy"></div>
 <div id="strokeModal" class="smodal"><div class="sbox">
   <div class="schar" id="strokeTarget"></div>
-  <div class="srow" style="margin-bottom:6px"><span style="color:#8a7c5a;font-weight:700;align-self:center;font-size:13px">速度</span><button class="btn btn-stone spd" data-s="1" style="font-size:14px;padding:6px 12px">1×</button><button class="btn btn-stone spd" data-s="1.25" style="font-size:14px;padding:6px 12px">1.25×</button><button class="btn btn-stone spd" data-s="1.5" style="font-size:14px;padding:6px 12px">1.5×</button></div>
   <div class="srow"><button class="btn btn-grass" id="strokeReplay">▶ 重播</button><button class="btn btn-stone" id="strokeClose">關閉</button></div>
 </div></div>
 <div id="unlockModal" class="umodal"><div class="ubox">
@@ -769,13 +768,11 @@ function spawnBirds(){ const box=document.getElementById("birds"); if(!box) retu
     b.style.top=(24+Math.random()*16).toFixed(1)+"%"; b.style.animationDuration=(15+Math.random()*13).toFixed(1)+"s"; b.style.animationDelay=(-Math.random()*14).toFixed(1)+"s"; box.appendChild(b); }); }
 function hideLoading(){ const l=document.getElementById("loading"); if(!l) return; l.classList.add("hide"); setTimeout(()=>l.remove(),600); }
 // 筆順動畫（hanzi-writer，自託管資料）
-let hw=null, lastStrokeChar=null;
+let hw=null;
 function openStroke(char){
-  lastStrokeChar=char;
   const m=document.getElementById("strokeModal"), t=document.getElementById("strokeTarget");
   t.innerHTML=""; m.classList.add("show");
-  const sp=store.opt.strokeSpeed||1.5;
-  document.querySelectorAll(".spd").forEach(b=>b.classList.toggle("on", +b.dataset.s===sp));
+  const sp=1.5;
   if(typeof HanziWriter==="undefined" || !(window.STROKES&&window.STROKES[char])){
     t.innerHTML='<div style="padding:92px 8px;color:#8a7c5a;font-weight:700">此字暫無筆順資料</div>'; hw=null; return; }
   hw=HanziWriter.create(t, char, { width:220, height:220, padding:8,
@@ -783,7 +780,6 @@ function openStroke(char){
     strokeAnimationSpeed:sp, delayBetweenStrokes:Math.round(280/sp), strokeColor:"#1f3a5f", radicalColor:"#c0392b" });
   hw.animateCharacter();
 }
-function setStrokeSpeed(s){ store.opt.strokeSpeed=s; saveStore(); if(lastStrokeChar) openStroke(lastStrokeChar); }
 function allWrong(){ const set=new Set(); Object.values(store.wrong).forEach(a=>a.forEach(c=>set.add(c))); return [...set]; }
 
 // ====== 使用說明 ======
@@ -1206,7 +1202,6 @@ renderBuddy('idle'); spawnCritters(); spawnBirds(); setTimeout(hideLoading,700);
 document.getElementById("strokeClose").onclick=()=>document.getElementById("strokeModal").classList.remove("show");
 document.getElementById("unlockClose").onclick=()=>{ sClick(); document.getElementById("unlockModal").classList.remove("show"); };
 document.getElementById("strokeReplay").onclick=()=>{ if(hw) hw.animateCharacter(); };
-document.querySelectorAll(".spd").forEach(b=>b.onclick=()=>{sClick(); setStrokeSpeed(+b.dataset.s);});
 if(!DATA.grades.length){ elView.innerHTML='<div class="empty">找不到生字資料（data/words.js）</div>'; }
 else viewHome();
 let swReg=null, swRefreshing=false;
