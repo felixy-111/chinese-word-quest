@@ -266,6 +266,8 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 #updatebar{position:fixed;left:0;right:0;top:0;z-index:600;display:none;background:#1F3A5F;color:#fff;text-align:center;padding:9px 12px;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.35);}
 #updatebar.show{display:block;}
 #updatebar button{margin-left:10px;background:#ffd83d;color:#1F3A5F;border:none;padding:5px 14px;border-radius:6px;font-weight:800;cursor:pointer;font-family:inherit;}
+.recogbadge{display:inline-block;background:#fff3cd;color:#8a6d00;border:1.5px solid #e0b000;border-radius:5px;padding:2px 9px;font-size:11px;font-weight:700;margin-top:6px;}
+.recogtag{background:#fff3cd;color:#8a6d00;border:1.5px solid #e0b000;border-radius:5px;padding:4px 10px;font-size:13px;font-weight:800;margin-bottom:6px;text-align:center;}
 </style>
 </head>
 <body>
@@ -788,6 +790,7 @@ function viewHelp(){
       首頁選「年級」→ 選「課」（共 12 關）→ 上方切「📖 複習」或「📝 抽考」。</div>
     <div class="field full"><div class="lab">📖 複習模式（學生自學）</div>
       ‧ 每個生字看：注音、部首、筆畫、造詞、造句<br>
+      ‧ <b>🔖 認讀字</b>（只要會認、不用會寫的字）會在大字下方標註<br>
       ‧ <b>破音字（多音字）</b>會多一張卡，列出不同詞的不同唸法（如「綠色 ㄌㄩˋ／鴨綠江 ㄌㄨˋ」），可點詞唸音<br>
       ‧ 複習頁下方有<b>本課句型</b>（該課專屬的照樣造句範例，詳見下方說明）<br>
       ‧ 點「大字」唸該字；點「造詞 / 造句」唸整句（台灣國語發音）<br>
@@ -798,6 +801,7 @@ function viewHelp(){
     <div class="field full"><div class="lab">📝 抽考模式（老師主導）</div>
       ‧ 勾選題型：唸注音／答部首／答筆畫／聽音寫字／造詞造句／<b>多音字唸讀音</b><br>
       ‧ 「多音字」題只會考有破音字的字（自動跳過沒破音的）<br>
+      ‧ <b>🔖 認讀字</b>會自動<b>跳過「聽音寫字」題</b>、只考「看字→唸」，卡片標「會唸出來就算對」<br>
       ‧ 每題有「生詞提示」（例：ㄊㄢˋ險）幫學生定位是哪個字<br>
       ‧ 答案被方塊蓋住，<b>老師點一下方塊「挖開」</b>看答案、再點一下蓋回（學生看不到）<br>
       ‧ 老師按「答對 ✓ / 答錯 ✗」記分；連續答對會「連擊」<br>
@@ -988,7 +992,7 @@ function renderReview(){
   const patSec = (lp&&lp.length)? `<details class="field full patbox"><summary style="cursor:pointer;font-weight:700;color:#1F3A5F;font-size:13px;list-style-position:inside;padding:2px 0">📝 本課句型（點開看照樣造句，至少 15 字）</summary>${lp.map(pt=>`<div style="margin-top:6px"><b style="color:#1F3A5F">${esc(pt.p)}</b><div class="val pex" data-ex="${esc(pt.ex)}" style="font-weight:600;cursor:pointer;margin:2px 0">🔊 ${esc(pt.ex)}</div><div style="font-size:13px;color:#666">換你造：${esc(pt.blank)}</div></div>`).join("")}</details>` : "";
   document.getElementById("sub").innerHTML=`<div class="card block">
     <div class="charrow">
-      <div><div class="char-big kai" id="bigChar">${esc(c.char)}</div><div class="spk">👆 點字唸給我聽</div>
+      <div><div class="char-big kai" id="bigChar">${esc(c.char)}</div><div class="spk">👆 點字唸給我聽</div>${c.recog?'<div class="recogbadge">🔖 認讀字（只要會認、不用會寫）</div>':''}
         <button class="btn btn-diamond" id="strokeBtn" style="font-size:14px;padding:6px 14px;margin-top:8px;width:auto">✍️ 看筆順</button></div>
       <div><div class="zhuyin">${esc(c.zhuyin)}</div></div>
     </div>
@@ -1056,7 +1060,7 @@ function renderQuizSetup(){
       const w=store.wrong[wkey()]||[]; chars=chars.filter(c=>w.includes(c.char));
     }
     let queue=[];
-    chars.forEach(c=>types.forEach(tk=>{ const q=QTYPES.find(q=>q.k===tk); if(q.only&&!q.only(c))return; queue.push({c,q}); }));
+    chars.forEach(c=>types.forEach(tk=>{ const q=QTYPES.find(q=>q.k===tk); if(q.only&&!q.only(c))return; if(c.recog&&q.k==="word2char")return; queue.push({c,q}); }));
     if(!queue.length){alert("這個範圍沒有可出的題目（多音字題只考有破音字的課）");return;}
     if(document.getElementById("doShuffle").checked) queue=shuffle(queue);
     S.quiz={queue, idx:0, ok:0, no:0, hint:document.getElementById("useHint").checked};
@@ -1080,7 +1084,7 @@ function renderQuizCard(){
       <span class="expbar"><i style="width:${pct}%"></i></span>
       <span class="hudtxt">第 ${Q.idx+1}/${total} ‧ ❌${Q.no}</span>
     </div>
-    <div class="q-prompt">${esc(q.t)}</div>
+    ${c.recog?'<div class="recogtag">🔖 認讀字：會唸出來就算對</div>':''}<div class="q-prompt">${esc(q.t)}</div>
     <div class="${isChar?'char-big kai':'zhuyin'}" id="qShow" style="cursor:pointer">${esc(showVal)}</div>
     <div class="spk">👆 點題目可唸音</div>
     ${hintHTML}
