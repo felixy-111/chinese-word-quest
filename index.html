@@ -774,7 +774,7 @@ function openStroke(char){
   lastStrokeChar=char;
   const m=document.getElementById("strokeModal"), t=document.getElementById("strokeTarget");
   t.innerHTML=""; m.classList.add("show");
-  const sp=store.opt.strokeSpeed||1.25;
+  const sp=store.opt.strokeSpeed||1.5;
   document.querySelectorAll(".spd").forEach(b=>b.classList.toggle("on", +b.dataset.s===sp));
   if(typeof HanziWriter==="undefined" || !(window.STROKES&&window.STROKES[char])){
     t.innerHTML='<div style="padding:92px 8px;color:#8a7c5a;font-weight:700">此字暫無筆順資料</div>'; hw=null; return; }
