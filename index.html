@@ -356,12 +356,20 @@ function pickVoice(){
 }
 function getVoice(){ if(!zhVoice) zhVoice=pickVoice(); return zhVoice; }
 if("speechSynthesis" in window){ speechSynthesis.onvoiceschanged=()=>{zhVoice=pickVoice();}; }
+let _ttsUnlocked=false;
+function unlockTTS(){ if(_ttsUnlocked||!("speechSynthesis" in window))return; _ttsUnlocked=true;
+  try{ const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); }catch(e){} }
+window.addEventListener("pointerdown", unlockTTS, {once:true});
+window.addEventListener("touchstart", unlockTTS, {once:true});
 function speak(text){
   if(!store.opt.voice || !("speechSynthesis" in window)) return;
-  speechSynthesis.cancel();
+  const ss=window.speechSynthesis;
+  try{ ss.cancel(); }catch(e){}
   const u=new SpeechSynthesisUtterance(text);
-  const v=getVoice(); u.lang="zh-TW"; if(v){u.voice=v; u.lang=v.lang;}
-  u.rate=0.8; u.pitch=1; speechSynthesis.speak(u);
+  const v=getVoice(); u.lang="zh-TW"; if(v){u.voice=v;}
+  u.rate=0.85; u.pitch=1; u.volume=1;
+  ss.speak(u);
+  setTimeout(()=>{ try{ if(ss.paused) ss.resume(); }catch(e){} }, 60);
 }
 
 // ====== Minecraft 風音效（Web Audio 合成）======
@@ -1177,7 +1185,7 @@ document.getElementById("btnSound").onclick=function(){store.opt.sound=!store.op
 // 背景音樂：優先播放 audio/bgm.mp3（免版稅檔），載入失敗才退回合成鋼琴 loop；預設關
 if(store.opt.bgm===undefined) store.opt.bgm=false;
 const btnBgm=document.getElementById("btnBgm");
-const bgm=document.getElementById("bgm"); bgm.volume=0.35;
+const bgm=document.getElementById("bgm"); bgm.volume=0.18;
 let bgmTimer=null, bgmStep=0;
 const BGM_SEQ=[392,440,523,440, 392,330,392,294, 330,392,440,523, 440,392,330,294];
 function bgmNote(freq,dur,vol){ const a=ac(); if(!a)return;
