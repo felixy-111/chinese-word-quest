@@ -764,7 +764,7 @@ function spawnBirds(){ const box=document.getElementById("birds"); if(!box) retu
   for(let i=0;i<n;i++) items.push(BIRDS[i].svg());
   MILESTONES.filter(m=>m.sky&&store.rares[m.key]).forEach(m=>items.push('<span class="rare">'+m.svg()+'</span>'));
   items.forEach((svg)=>{ const b=document.createElement("div"); b.className="bird"; b.innerHTML=svg;
-    b.style.top=(5+Math.random()*32).toFixed(1)+"%"; b.style.animationDuration=(15+Math.random()*13).toFixed(1)+"s"; b.style.animationDelay=(-Math.random()*14).toFixed(1)+"s"; box.appendChild(b); }); }
+    b.style.top=(24+Math.random()*16).toFixed(1)+"%"; b.style.animationDuration=(15+Math.random()*13).toFixed(1)+"s"; b.style.animationDelay=(-Math.random()*14).toFixed(1)+"s"; box.appendChild(b); }); }
 function hideLoading(){ const l=document.getElementById("loading"); if(!l) return; l.classList.add("hide"); setTimeout(()=>l.remove(),600); }
 // 筆順動畫（hanzi-writer，自託管資料）
 let hw=null;
