@@ -920,6 +920,7 @@ function viewHome(){
     <div style="margin-top:18px"><button class="btn btn-wood" id="helpBtn">📖 使用說明</button></div></div>`;
   elView.querySelectorAll(".grade-card[data-gi]").forEach(c=>c.onclick=()=>{S.gi=+c.dataset.gi; sPlace(); viewLessons();});
   document.getElementById("helpBtn").onclick=()=>{sClick(); viewHelp();};
+  renderBuddy('idle');
 }
 
 // ====== 課次地圖 ======
@@ -939,6 +940,7 @@ function viewLessons(){
   elView.innerHTML=`<div style="margin-bottom:12px"><button class="btn btn-diamond" id="rangeBtn" style="width:100%">🐉 範圍挑戰（跨課複習 / 全對解鎖稀有生物）</button></div><div class="lesson-grid">${cards}</div>`;
   elView.querySelectorAll(".lesson-card").forEach(c=>c.onclick=()=>{S.range=null; S.li=+c.dataset.li; S.ci=0; S.mode="review"; sPlace(); viewStudy();});
   document.getElementById("rangeBtn").onclick=()=>{sClick(); viewRange();};
+  renderBuddy('idle');
 }
 
 // ====== 範圍挑戰頁 ======
