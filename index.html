@@ -80,6 +80,11 @@ header.bar .sp{flex:1;}
 .grade-card .t{font-size:24px; font-weight:900; text-shadow:2px 2px 0 var(--grass-d);}
 .grade-card .d{font-size:13px; opacity:.9; margin-top:6px;}
 .grade-card.locked{background:var(--stone); cursor:not-allowed; opacity:.85;}
+.grade-card.archived{filter:grayscale(1); opacity:.55;}
+.grade-card .arch-note{font-size:11px; margin-top:6px; opacity:.95;}
+.home-sec{margin-top:8px;}
+.home-h{font-size:15px; font-weight:900; color:#2f5320; background:rgba(255,255,255,.55);
+  display:inline-block; padding:4px 14px; border-radius:16px; margin-bottom:10px;}
 
 .lesson-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px;}
 .lesson-card{padding:14px; background:var(--wood); color:#fff; cursor:pointer; position:relative;}
@@ -310,7 +315,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
-const APP_VER = "v30｜2026.06.16";
+const APP_VER = "v42｜2026.07.08";
 const LS_KEY = "cwq_state_v1";
 let store = loadStore();
 function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
@@ -444,7 +449,7 @@ const ACHV=[
   {id:"combo10",ic:"🔥",nm:"連擊高手",ds:"連對 10 題"},
   {id:"see100",ic:"💯",nm:"識字百",ds:"累積看過 100 字"},
   {id:"streak7",ic:"📅",nm:"七日勤學",ds:"連續學習 7 天"},
-  {id:"collectAll",ic:"💎",nm:"生字大師",ds:"收集滿全部礦石"},
+  {id:"collectAll",ic:"💎",nm:"生字大師",ds:"收集滿一個年級的礦石"},
 ];
 function unlock(id){ if(store.achv[id]) return; const a=ACHV.find(x=>x.id===id); if(!a) return;
   store.achv[id]=1; saveStore(); sAchv(); toast(a.ic+" 成就解鎖："+a.nm,""); renderHUD(); }
@@ -456,19 +461,20 @@ function comboPop(n){ const d=document.createElement("div"); d.className="combop
 function seenCount(){ return Object.keys(store.seen).length; }
 function collectedCount(){ return Object.keys(store.collected).length; }
 function totalLessons(){ return DATA.grades.reduce((s,g)=>s+g.lessons.length,0); }
+function gradeGemsFull(gi){ const g=DATA.grades[gi]; return !!g && g.lessons.every((l,i)=>store.collected[gi+"|"+i]); }
 function renderHUD(){
   const li=levelInfo(), el=document.getElementById("topxp"); if(!el) return;
   let pct=100; if(!li.isMax) pct=Math.round((store.xp-li.base)/(li.next-li.base)*100);
   el.innerHTML=`<span class="lv">Lv.${li.lv} ${esc(li.name)}</span>
     <span class="xpbar"><i style="width:${pct}%"></i></span>
     <span class="mini">${store.xp} XP</span><span class="mini">🔥${store.streak}天</span>
-    <span class="mini">💎${collectedCount()}/${totalLessons()}</span>`;
+    <span class="mini">💎${collectedCount()}</span>`;
   el.onclick=viewStats;
 }
 // 收一塊礦石（該課抽考全對）
 function collectGem(){ const k=wkey(); if(store.collected[k]) return; store.collected[k]=1; saveStore();
-  const a=GROUND_UNLOCK[S.li]; if(a) showUnlock(a); renderHUD(); spawnCritters();
-  if(collectedCount()>=totalLessons()) unlock("collectAll"); }
+  const a=GROUND_UNLOCK[S.li % GROUND_UNLOCK.length]; if(a) showUnlock(a); renderHUD(); spawnCritters();
+  if(gradeGemsFull(S.gi)) unlock("collectAll"); }
 function showUnlock(item){ const m=document.getElementById("unlockModal"); if(!m) return;
   document.getElementById("unlockAnimal").innerHTML=item.svg();
   document.getElementById("unlockName").textContent=item.name;
@@ -491,14 +497,21 @@ function updateStreak(){ const today=new Date().toLocaleDateString('en-CA');
 // 我的進度頁（第一波簡版；第三波再加弱點字/筆順）
 function viewStats(){
   document.getElementById("crumb").textContent="我的進度";
-  const li=levelInfo(), g=DATA.grades[0];
-  const groundCells=GROUND_UNLOCK.map((a,i)=>{ const got=store.collected["0|"+i];
-    return `<div class="zoocell ${got?'got':''}">`+(got?'<div class="zoosvg">'+a.svg()+'</div><div class="zooname">'+a.name+'</div>':'<div class="zoolock">？</div><div class="zooname">第'+(i+1)+'課全對</div>')+`</div>`; }).join("");
+  const li=levelInfo();
+  // 生物圖鑑：每個年級各自一段（用該 grade 的 gi；GROUND_UNLOCK 循環對應課序）
+  const groundSecs=DATA.grades.map((g,gi)=>{
+    const cells=g.lessons.map((l,i)=>{ const a=GROUND_UNLOCK[i%GROUND_UNLOCK.length], got=store.collected[gi+"|"+i];
+      const lockLab=(g.publisher==="翰林")?esc(l.title):("第"+l.id+"課");
+      return `<div class="zoocell ${got?'got':''}">`+(got?'<div class="zoosvg">'+a.svg()+'</div><div class="zooname">'+a.name+'</div>':'<div class="zoolock">？</div><div class="zooname">'+lockLab+'</div>')+`</div>`; }).join("");
+    return `<div class="field full"><div class="lab">🐾 生物圖鑑 ‧ ${esc(g.label||g.grade)}（每關抽考全對解鎖）</div><div class="zoowall">${cells}</div></div>`; }).join("");
   const bu=birdsUnlocked();
   const birdCells=BIRDS.map((b,i)=>{ const got=i<bu;
     return `<div class="zoocell ${got?'got':''}">`+(got?'<div class="zoosvg">'+b.svg()+'</div><div class="zooname">'+b.name+'</div>':'<div class="zoolock">？</div><div class="zooname">累積'+((i+1)*2)+'天</div>')+`</div>`; }).join("");
-  const rareCells=MILESTONES.map(m=>{ const got=store.rares[m.key];
-    return `<div class="zoocell ${got?'got':''}">`+(got?'<div class="zoosvg">'+m.svg()+'</div><div class="zooname">'+m.name+'</div>':'<div class="zoolock">？</div><div class="zooname">第'+m.from+'-'+m.to+'課全對</div>')+`</div>`; }).join("");
+  // 稀有生物：每個年級各自一段（依該 grade 的里程碑集）
+  const rareSecs=DATA.grades.map((g,gi)=>{
+    const cells=milestonesFor(gi).map(m=>{ const got=store.rares[m.key];
+      return `<div class="zoocell ${got?'got':''}">`+(got?'<div class="zoosvg">'+m.svg()+'</div><div class="zooname">'+m.name+'</div>':'<div class="zoolock">？</div><div class="zooname">第'+m.from+'-'+m.to+'關全對</div>')+`</div>`; }).join("");
+    return `<div class="field full"><div class="lab">✨ 稀有生物 ‧ ${esc(g.label||g.grade)}（範圍挑戰全對解鎖）</div><div class="zoowall">${cells}</div></div>`; }).join("");
   const acc= store.stats.quizTotal? Math.round(store.stats.quizOk/store.stats.quizTotal*100):0;
   const achvHTML=ACHV.map(a=>`<div class="achvrow ${store.achv[a.id]?'':'locked'}">
     <span class="ic">${a.ic}</span><div><div class="nm">${a.nm}</div><div class="ds">${a.ds}</div></div></div>`).join("");
@@ -507,9 +520,9 @@ function viewStats(){
   elView.innerHTML=`<div class="card block" style="text-align:left">
     <div style="text-align:center"><div class="levelup">Lv.${li.lv}　${esc(li.name)}</div>
       <div class="statline">${store.xp} XP ‧ 🔥連續 ${store.streak} 天 ‧ 看過 ${seenCount()} 字 ‧ 抽考正確率 ${acc}%</div></div>
-    <div class="field full"><div class="lab">🐾 生物圖鑑（每課抽考全對解鎖）</div><div class="zoowall">${groundCells}</div></div>
+    ${groundSecs}
     <div class="field full"><div class="lab">🕊️ 天空夥伴（累積學習每 2 天解鎖）</div><div class="zoowall">${birdCells}</div></div>
-    <div class="field full"><div class="lab">✨ 稀有生物（範圍挑戰全對解鎖）</div><div class="zoowall">${rareCells}</div></div>
+    ${rareSecs}
     <div class="field full"><div class="lab">📕 弱點字（抽考錯過的字，點唸音）</div><div style="margin-top:6px">${weakHTML}</div></div>
     <div class="field full"><div class="lab">🏅 成就</div>${achvHTML}</div>
     <div class="navrow"><button class="btn btn-diamond" id="reportBtn">📊 各課表現</button><button class="btn btn-stone" id="sback">◀ 返回</button></div></div>`;
@@ -751,6 +764,7 @@ function unicornSVG(){ return `<svg class="hop" viewBox="0 0 20 16" width="50" s
 <rect x="13.5" y="5" width="1.5" height="1.5" fill="#7a5"/><rect x="14" y="5.4" width="0.8" height="0.9" fill="#222"/>
 <rect x="4" y="12" width="1.8" height="3" fill="#e0e0e0"/><rect x="9.5" y="12" width="1.8" height="3" fill="#e0e0e0"/></svg>`; }
 // 里程碑範圍 → 稀有生物（from/to 為課號 1-based）
+// 康軒（12 課）保持原 7 筆、key 不變（存檔相容）
 const MILESTONES=[
   {from:1,to:3,  key:"dragonlet", name:"小飛龍", svg:dragonletSVG,  sky:true},
   {from:4,to:6,  key:"qilin",     name:"麒麟",   svg:qilinSVG,      sky:false},
@@ -760,7 +774,18 @@ const MILESTONES=[
   {from:7,to:12, key:"unicorn",   name:"獨角獸", svg:unicornSVG,    sky:false},
   {from:1,to:12, key:"golddragon",name:"金龍",   svg:goldDragonSVG, sky:true},
 ];
-function milestoneOf(from,to){ return MILESTONES.find(m=>m.from===from&&m.to===to); }
+// 翰林（30 關）：key 加 h_ 前綴、重用既有 SVG
+const MILESTONES_HANLIN=[
+  {from:1,to:10, key:"h_dragonlet", name:"小飛龍", svg:dragonletSVG,  sky:true},
+  {from:11,to:20,key:"h_qilin",     name:"麒麟",   svg:qilinSVG,      sky:false},
+  {from:21,to:30,key:"h_phoenix",   name:"鳳凰",   svg:phoenixSVG,    sky:true},
+  {from:1,to:15, key:"h_azure",     name:"青龍",   svg:azureDragonSVG,sky:true},
+  {from:16,to:30,key:"h_tiger",     name:"白虎",   svg:whiteTigerSVG, sky:false},
+  {from:1,to:30, key:"h_golddragon",name:"金龍",   svg:goldDragonSVG, sky:true},
+];
+function milestonesFor(gi){ const g=DATA.grades[gi];
+  return (g && g.publisher==="翰林") ? MILESTONES_HANLIN : MILESTONES; }
+function milestoneOf(from,to){ return milestonesFor(S.gi).find(m=>m.from===from&&m.to===to); }
 function spawnCritters(){ const box=document.getElementById("critters"); if(!box) return; box.innerHTML="";
   const list=GROUND_BASE.map(f=>f());
   GROUND_UNLOCK.forEach((a,i)=>{ if(store.collected["0|"+i]) list.push(a.svg()); });
@@ -777,16 +802,35 @@ function spawnBirds(){ const box=document.getElementById("birds"); if(!box) retu
 function hideLoading(){ const l=document.getElementById("loading"); if(!l) return; l.classList.add("hide"); setTimeout(()=>l.remove(),600); }
 // 筆順動畫（hanzi-writer，自託管資料）
 let hw=null;
+// 翰林筆順檔較大（2.2MB），第一次點筆順才載入
+let hanlinStrokesLoading=null;
+function ensureHanlinStrokes(){
+  if(window.STROKES_HANLIN) return Promise.resolve();
+  if(!hanlinStrokesLoading){
+    hanlinStrokesLoading=new Promise(res=>{ const s=document.createElement("script");
+      s.src="data/strokes-hanlin.js"; s.onload=res; s.onerror=res; document.head.appendChild(s); });
+  }
+  return hanlinStrokesLoading;
+}
+function strokeData(c){ return (window.STROKES&&window.STROKES[c])||(window.STROKES_HANLIN&&window.STROKES_HANLIN[c])||null; }
 function openStroke(char){
   const m=document.getElementById("strokeModal"), t=document.getElementById("strokeTarget");
   t.innerHTML=""; m.classList.add("show");
   const sp=1.5;
-  if(typeof HanziWriter==="undefined" || !(window.STROKES&&window.STROKES[char])){
-    t.innerHTML='<div style="padding:92px 8px;color:#8a7c5a;font-weight:700">此字暫無筆順資料</div>'; hw=null; return; }
-  hw=HanziWriter.create(t, char, { width:220, height:220, padding:8,
-    charDataLoader:(c)=>window.STROKES[c], showOutline:true,
-    strokeAnimationSpeed:sp, delayBetweenStrokes:Math.round(280/sp), strokeColor:"#1f3a5f", radicalColor:"#c0392b" });
-  hw.animateCharacter();
+  const render=()=>{
+    if(typeof HanziWriter==="undefined" || !strokeData(char)){
+      t.innerHTML='<div style="padding:92px 8px;color:#8a7c5a;font-weight:700">此字暫無筆順資料</div>'; hw=null; return; }
+    t.innerHTML="";
+    hw=HanziWriter.create(t, char, { width:220, height:220, padding:8,
+      charDataLoader:(c)=>strokeData(c), showOutline:true,
+      strokeAnimationSpeed:sp, delayBetweenStrokes:Math.round(280/sp), strokeColor:"#1f3a5f", radicalColor:"#c0392b" });
+    hw.animateCharacter();
+  };
+  if(window.STROKES&&window.STROKES[char]) render();
+  else{
+    t.innerHTML='<div style="padding:92px 8px;color:#8a7c5a;font-weight:700">筆順載入中…</div>';
+    ensureHanlinStrokes().then(render);
+  }
 }
 function allWrong(){ const set=new Set(); Object.values(store.wrong).forEach(a=>a.forEach(c=>set.add(c))); return [...set]; }
 
@@ -795,9 +839,9 @@ function viewHelp(){
   document.getElementById("crumb").textContent="使用說明";
   elView.innerHTML=`<div class="card block" style="text-align:left; line-height:1.75">
     <div style="text-align:center"><div class="levelup" style="font-size:24px">📖 使用說明</div>
-      <div class="statline">康軒國語二年級下學期 ‧ 213 個生字 ‧ 複習＋抽考</div></div>
+      <div class="statline">📗 翰林第 1～4 冊（三年級銜接複習，30 關依注音分組，內容陸續製作中）<br>📦 康軒二年級下學期已歸檔，仍可使用 ‧ 複習＋抽考</div></div>
     <div class="field full"><div class="lab">🎮 怎麼開始</div>
-      首頁選「年級」→ 選「課」（共 12 關）→ 上方切「📖 複習」或「📝 抽考」。</div>
+      首頁選「年級」→ 選「課」→ 上方切「📖 複習」或「📝 抽考」。</div>
     <div class="field full"><div class="lab">📖 複習模式（學生自學）</div>
       ‧ 每個生字看：注音、部首、筆畫、造詞、造句<br>
       ‧ <b>🔖 認讀字</b>（只要會認、不用會寫的字）會在大字下方標註<br>
@@ -909,14 +953,19 @@ function lessonPatterns(){ const g=grade(); return (LESSON_PATTERNS[g.grade]||{}
 // ====== 首頁 ======
 function viewHome(){
   document.getElementById("crumb").textContent="選擇年級";
-  let cards=DATA.grades.map((g,i)=>
-    `<div class="grade-card block" data-gi="${i}"><div class="t">${esc(g.label||g.grade)}</div>
-     <div class="d">${esc(g.publisher)} ‧ ${g.lessons.length}課</div></div>`).join("");
-  cards+=`<div class="grade-card block locked"><div class="t">三年級</div><div class="d">敬請期待</div></div>`;
+  const card=(g,i,archived)=>
+    `<div class="grade-card block${archived?' archived':''}" data-gi="${i}"><div class="t">${esc(g.label||g.grade)}</div>
+     <div class="d">${esc(g.publisher)} ‧ ${g.lessons.length}課</div>${archived?'<div class="arch-note">已歸檔・仍可進入</div>':''}</div>`;
+  const idx=DATA.grades.map((g,i)=>[g,i]);
+  const hanlin=idx.filter(([g])=>g.publisher==="翰林");
+  const others=idx.filter(([g])=>g.publisher!=="翰林");
+  const topCards=hanlin.map(([g,i])=>card(g,i,false)).join("");
+  const arcCards=others.map(([g,i])=>card(g,i,true)).join("");
   elView.innerHTML=`<div class="hero">
     <div class="logo"><span class="torch">🔥</span>生字大冒險<span class="torch">🔥</span></div>
     <div class="sub">⛏️ 一起挖出每一課的生字寶藏！</div>
-    <div class="grade-grid">${cards}</div>
+    ${topCards?`<div class="home-sec"><div class="home-h">📗 三年級銜接複習</div><div class="grade-grid">${topCards}</div></div>`:""}
+    ${arcCards?`<div class="home-sec" style="margin-top:16px"><div class="home-h">📦 已歸檔</div><div class="grade-grid">${arcCards}</div></div>`:""}
     <div style="margin-top:18px"><button class="btn btn-wood" id="helpBtn">📖 使用說明</button></div></div>`;
   elView.querySelectorAll(".grade-card[data-gi]").forEach(c=>c.onclick=()=>{S.gi=+c.dataset.gi; sPlace(); viewLessons();});
   document.getElementById("helpBtn").onclick=()=>{sClick(); viewHelp();};
@@ -927,13 +976,14 @@ function viewHome(){
 function viewLessons(){
   const g=grade();
   document.getElementById("crumb").textContent=g.label;
+  const nmBig=(g.publisher==="翰林")?' style="font-size:26px"':'';
   const cards=g.lessons.map((l,i)=>{
     const seen=l.chars.filter(c=>store.seen[S.gi+"|"+i+"|"+c.char]).length;
     const pct=Math.round(seen/l.chars.length*100);
     const done=pct===100?" ✅":"";
     const lst=store.lessonStats[S.gi+"|"+i]; const acc=lst&&lst.total?Math.round(lst.ok/lst.total*100)+'%':'—';
     return `<div class="lesson-card block" data-li="${i}">
-      <div class="no">第 ${l.id} 關${done}</div><div class="nm">${esc(l.title)}</div>
+      <div class="no">第 ${l.id} 關${done}</div><div class="nm"${nmBig}>${esc(l.title)}</div>
       <div class="meta">${l.chars.length} 字 ‧ 已複習 ${seen}/${l.chars.length} ‧ 正確率 ${acc}${(store.wrong[S.gi+"|"+i]||[]).length?(' ‧ 不熟 '+(store.wrong[S.gi+"|"+i]||[]).length+'字'):''}</div>
       <div class="bar2"><i style="width:${pct}%"></i></div></div>`;
   }).join("");
@@ -949,7 +999,7 @@ function viewRange(){
   document.getElementById("crumb").textContent="範圍挑戰";
   const g=grade(), n=g.lessons.length;
   const opt=(sel)=>g.lessons.map((l,i)=>`<option value="${i+1}" ${sel===i+1?'selected':''}>第${l.id}課 ${esc(l.title)}</option>`).join("");
-  const ms=MILESTONES.map(m=>{ const got=store.rares[m.key];
+  const ms=milestonesFor(S.gi).map(m=>{ const got=store.rares[m.key];
     return `<div class="msrow ${got?'got':''}" data-from="${m.from}" data-to="${m.to}">
       <div class="mssvg">${m.svg()}</div>
       <div><div class="msname">${m.name}${got?' ✓':''}</div><div class="msrange">第${m.from}-${m.to}課 全對解鎖</div></div></div>`; }).join("");
@@ -996,7 +1046,12 @@ function renderReview(){
   const chars=currentChars(), c=chars[S.ci];
   if(!S.range){ const sk=S.gi+"|"+S.li+"|"+c.char;
     if(!store.seen[sk]){ store.seen[sk]=1; saveStore(); addXP(2); if(seenCount()>=100) unlock("see100"); } }
-  const words=c.words.map(w=>`<span class="tag" data-say="${esc(w)}">${esc(w)}</span>`).join("");
+  const madeIn='<span style="color:#a59a7a;font-weight:600">內容製作中</span>';
+  const words=(c.words&&c.words.length)? c.words.map(w=>`<span class="tag" data-say="${esc(w)}">${esc(w)}</span>`).join("") : madeIn;
+  const zhuyinHTML=c.zhuyin? esc(c.zhuyin) : '<span style="color:#a59a7a;font-weight:600">注音製作中</span>';
+  const radHTML=c.radical? esc(c.radical) : "—";
+  const strokeHTML=(c.strokes>0)? (c.strokes+" 畫") : "—";
+  const sentHTML=c.sentence? esc(c.sentence) : madeIn;
   const _wrong = (!S.range)? (store.wrong[S.gi+"|"+S.li]||[]) : [];
   const wrongSec = _wrong.length? `<div class="field full"><div class="lab">📕 本課不熟的字（抽考答對就自動消失）</div><div class="tagrow" style="margin-top:4px">${_wrong.map(ch=>`<span class="wrongchip" data-ch="${esc(ch)}">${esc(ch)}</span>`).join("")}</div></div>` : "";
   const polySec = c.polyphone ? `<div class="field full"><div class="lab">🔤 多音字「${esc(c.char)}」（不同詞不同唸法，點詞唸音）</div><div class="tagrow">${polyTags(c.polyphone)}</div></div>` : "";
@@ -1006,13 +1061,13 @@ function renderReview(){
     <div class="charrow">
       <div><div class="char-big kai" id="bigChar">${esc(c.char)}</div><div class="spk">👆 點字唸給我聽</div>${c.recog?'<div class="recogbadge">🔖 認讀字（只要會認、不用會寫）</div>':''}
         <button class="btn btn-diamond" id="strokeBtn" style="font-size:14px;padding:6px 14px;margin-top:8px;width:auto">✍️ 看筆順</button></div>
-      <div><div class="zhuyin">${esc(c.zhuyin)}</div></div>
+      <div><div class="zhuyin">${zhuyinHTML}</div></div>
     </div>
     <div class="fields">
-      <div class="field"><div class="lab">部首</div><div class="val kai">${esc(c.radical)}</div></div>
-      <div class="field"><div class="lab">筆畫</div><div class="val">${c.strokes} 畫</div></div>
+      <div class="field"><div class="lab">部首</div><div class="val kai">${radHTML}</div></div>
+      <div class="field"><div class="lab">筆畫</div><div class="val">${strokeHTML}</div></div>
       <div class="field full"><div class="lab">造詞（點詞唸音）</div><div class="tagrow">${words}</div></div>
-      <div class="field full"><div class="lab">造句（點句唸音 🔊）</div><div class="val" id="sentSay" style="font-weight:600; cursor:pointer">${esc(c.sentence)}</div></div>
+      <div class="field full"><div class="lab">造句（點句唸音 🔊）</div><div class="val" id="sentSay" style="font-weight:600;${c.sentence?' cursor:pointer':''}">${sentHTML}</div></div>
       ${polySec}
     </div>
     ${wrongSec}
@@ -1025,7 +1080,7 @@ function renderReview(){
     <div class="hint">綠色經驗條會記住你看過哪些字</div></div>`;
   document.getElementById("bigChar").onclick=()=>{sClick(); speak(c.say||c.char);};
   document.getElementById("strokeBtn").onclick=()=>{sClick(); openStroke(c.char);};
-  document.getElementById("sentSay").onclick=()=>{sClick(); speak(c.sentence);};
+  if(c.sentence) document.getElementById("sentSay").onclick=()=>{sClick(); speak(c.sentence);};
   document.querySelectorAll(".tag").forEach(t=>t.onclick=()=>{sClick(); speak(t.dataset.say);});
   document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ch);});
   document.querySelectorAll(".pex").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ex);});
@@ -1041,11 +1096,11 @@ function renderReview(){
 
 // ---- 抽考設定 ----
 const QTYPES=[
-  {k:"word2char",t:"聽注音 → 寫字", show:c=>c.zhuyin, ans:c=>c.char, say:c=>c.char},
-  {k:"zhuyin", t:"看字 → 唸注音", show:c=>c.char, ans:c=>c.zhuyin},
-  {k:"radical",t:"看字 → 答部首", show:c=>c.char, ans:c=>c.radical+" 部"},
-  {k:"strokes",t:"看字 → 答筆畫", show:c=>c.char, ans:c=>c.strokes+" 畫"},
-  {k:"makeword",t:"看字 → 造詞/造句（口頭）", show:c=>c.char, ans:c=>c.words.join("、")+"／"+c.sentence},
+  {k:"word2char",t:"聽注音 → 寫字", show:c=>c.zhuyin, ans:c=>c.char, say:c=>c.char, only:c=>!!c.zhuyin},
+  {k:"zhuyin", t:"看字 → 唸注音", show:c=>c.char, ans:c=>c.zhuyin, only:c=>!!c.zhuyin},
+  {k:"radical",t:"看字 → 答部首", show:c=>c.char, ans:c=>c.radical+" 部", only:c=>!!c.radical},
+  {k:"strokes",t:"看字 → 答筆畫", show:c=>c.char, ans:c=>c.strokes+" 畫", only:c=>c.strokes>0},
+  {k:"makeword",t:"看字 → 造詞/造句（口頭）", show:c=>c.char, ans:c=>c.words.join("、")+"／"+c.sentence, only:c=>(c.words&&c.words.length>0)||!!c.sentence},
   {k:"poly",t:"多音字 → 唸對讀音", show:c=>c.char, ans:c=>c.polyphone, only:c=>!!c.polyphone},
 ];
 function renderQuizSetup(){
@@ -1058,6 +1113,10 @@ function renderQuizSetup(){
     <label class="opt"><input type="checkbox" id="useHint" checked> 顯示生詞提示（例：ㄊㄢˋ險）</label>
     <label class="opt"><input type="checkbox" id="onlyWrong" ${wrongList.length?"":"disabled"}> 只考錯題本（目前 ${wrongList.length} 字）</label>
     <label class="opt"><input type="checkbox" id="doShuffle" checked> 隨機出題順序</label>
+    <label class="opt" style="justify-content:space-between">📋 題數上限
+      <select id="qLimit" style="font-size:16px;padding:4px 6px;font-weight:700;border-radius:6px">
+        <option value="0">全部</option><option value="10">10 題</option><option value="20">20 題</option><option value="30">30 題</option>
+      </select></label>
     <div class="navrow">
       <button class="btn btn-stone" id="back">◀ 返回</button>
       <button class="btn btn-gold" id="start">開始抽考 ▶</button>
@@ -1073,8 +1132,9 @@ function renderQuizSetup(){
     }
     let queue=[];
     chars.forEach(c=>types.forEach(tk=>{ const q=QTYPES.find(q=>q.k===tk); if(q.only&&!q.only(c))return; if(c.recog&&q.k==="word2char")return; queue.push({c,q}); }));
-    if(!queue.length){alert("這個範圍沒有可出的題目（多音字題只考有破音字的課）");return;}
+    if(!queue.length){alert("這個範圍沒有可出的題目（生字內容可能還在製作中）");return;}
     if(document.getElementById("doShuffle").checked) queue=shuffle(queue);
+    const lim=+document.getElementById("qLimit").value; if(lim>0) queue=queue.slice(0,lim);
     S.quiz={queue, idx:0, ok:0, no:0, hint:document.getElementById("useHint").checked};
     sPlace(); renderQuizCard();
   };
@@ -1089,7 +1149,7 @@ function renderQuizCard(){
   const isChar=(q.k!=="word2char");
   const total=Q.queue.length, pct=Math.round(Q.idx/total*100);
   const hearts="❤️".repeat(Math.min(Q.ok,10))||"—";
-  const hintHTML = (Q.hint && q.k!=="poly") ? `<div class="hintword">📖 生詞：${hintWord(c)}</div>` : "";
+  const hintHTML = (Q.hint && q.k!=="poly" && c.zhuyin) ? `<div class="hintword">📖 生詞：${hintWord(c)}</div>` : "";
   document.getElementById("sub").innerHTML=`<div class="card block">
     <div class="hud">
       <span class="hearts">${hearts}</span>

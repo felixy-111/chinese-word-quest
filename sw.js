@@ -1,5 +1,5 @@
-const CACHE = "cwq-v39";
-const ASSETS = ["./", "index.html", "data/words.js", "data/strokes.js", "hanzi-writer.min.js", "manifest.webmanifest", "audio/bgm.mp3"];
+const CACHE = "cwq-v42";
+const ASSETS = ["./", "index.html", "data/words.js", "data/strokes.js", "data/strokes-hanlin.js", "hanzi-writer.min.js", "manifest.webmanifest", "audio/bgm.mp3", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(()=>{}));
   self.skipWaiting();

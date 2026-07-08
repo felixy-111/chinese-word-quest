@@ -18,6 +18,11 @@ data/words.json
 # ── 講義句型/短語抽取（含康軒例句，待加短語功能用）──
 data/講義句型短語*.md
 
+# ── 翰林生字資料與本機後台（不公開）──
+data/hanlin.json
+data/hanlin_校對表*
+admin/
+
 # ── 生成腳本（含教師用書處理邏輯）──
 *.py
 
@@ -25,3 +30,6 @@ data/講義句型短語*.md
 demo_*.png
 .DS_Store
 .playwright-mcp/
+
+# 翰林建置中間檔
+data/strokes_count_hanlin.json
