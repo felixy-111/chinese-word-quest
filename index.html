@@ -315,7 +315,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
-const APP_VER = "v45｜2026.07.09";
+const APP_VER = "v46｜2026.07.09";
 const LS_KEY = "cwq_state_v1";
 let store = loadStore();
 function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
@@ -912,7 +912,7 @@ function viewHelp(){
       用 Safari（或 Chrome）開網址 → 「分享 / 選單」→「加入主畫面」→ 變成 App 圖示，離線也能用。</div>
     <div class="field full"><div class="lab">🔄 更新與進度存檔</div>
       ‧ 目前版本：<b>${APP_VER}</b>　<button class="btn btn-diamond" id="btnCheckUpd" style="font-size:13px;padding:5px 12px;width:auto">🔄 檢查更新</button><br>
-      ‧ 有新版時，畫面<b>最上方會跳「🆕 有新版本，點此更新」</b>，點了就會更新，<b>進度不會不見</b>（不用重裝）<br>
+      ‧ 有新版時，<b>打開 app 就會自動更新</b>，<b>進度不會不見</b>（不用重裝）；也可按上面「🔄 檢查更新」手動確認<br>
       ‧ <b>進度存檔</b>：要換平板、或不小心把 app 刪掉重裝前，先按「💾 存檔」把進度複製起來保存；新裝置貼回欄位再按「📥 讀檔」就能救回<br>
       <textarea id="saveTxt" rows="3" style="width:100%;box-sizing:border-box;margin-top:6px;font-size:12px;border:2px solid var(--panelline);border-radius:6px;padding:6px" placeholder="按「💾 存檔」會把進度產生在這裡；或把舊存檔貼進來再按「📥 讀檔」"></textarea>
       <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
@@ -1333,10 +1333,14 @@ async function checkUpdate(){
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("sw.js", {updateViaCache:"none"}).then(reg=>{
     swReg=reg; reg.update();
-    if(reg.waiting && navigator.serviceWorker.controller) showUpdateBar();
+    // 打開 app 若已有等待中的新版 → 直接啟用（自動更新）
+    if(reg.waiting && navigator.serviceWorker.controller) reg.waiting.postMessage("skipWaiting");
     reg.addEventListener("updatefound", ()=>{ const nw=reg.installing;
       nw && nw.addEventListener("statechange", ()=>{
-        if(nw.state==="installed" && navigator.serviceWorker.controller) showUpdateBar();
+        // 偵測到新版且是「更新」（非首次安裝）→ 自動套用，不需使用者點
+        if(nw.state==="installed" && navigator.serviceWorker.controller){
+          (reg.waiting||nw).postMessage("skipWaiting");
+        }
       });
     });
   }).catch(()=>{});
