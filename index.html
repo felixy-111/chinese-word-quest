@@ -315,7 +315,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
-const APP_VER = "v44｜2026.07.09";
+const APP_VER = "v45｜2026.07.09";
 const LS_KEY = "cwq_state_v1";
 let store = loadStore();
 function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
@@ -1307,13 +1307,31 @@ function showUpdateBar(){ const b=document.getElementById("updatebar"); if(b) b.
 async function checkUpdate(){
   if(!("serviceWorker" in navigator)){ alert("這個瀏覽器不支援自動更新，重新整理一次即可。"); return; }
   const reg = swReg || await navigator.serviceWorker.getRegistration();
-  if(!reg){ alert("重新整理一次就會是最新版囉。"); location.reload(); return; }
+  if(!reg){ location.reload(); return; }
+  // 主動抓線上最新 index.html（帶時間戳＋no-store，繞過瀏覽器與 SW 快取）比對真實版本
+  let online=null;
+  try{
+    const r=await fetch("index.html?_="+Date.now(), {cache:"no-store"});
+    const t=await r.text(); const m=t.match(/APP_VER\s*=\s*"([^"]+)"/); online=m?m[1]:null;
+  }catch(e){}
   await reg.update();
-  if(reg.waiting){ reg.waiting.postMessage("skipWaiting"); }
-  else alert("已經是最新版本了！🎉（目前 "+APP_VER+"）");
+  const hasNew = (online && online!==APP_VER) || !!reg.waiting || !!reg.installing;
+  if(!hasNew){ alert("已經是最新版本了！🎉（目前 "+APP_VER+"）"); return; }
+  showUpdateBar();
+  if(reg.waiting){ reg.waiting.postMessage("skipWaiting"); return; }
+  if(reg.installing){
+    const nw=reg.installing;
+    nw.addEventListener("statechange", ()=>{ if(nw.state==="installed" && reg.waiting) reg.waiting.postMessage("skipWaiting"); });
+    return;
+  }
+  // 線上版本較新但 SW 未偵測到變化（罕見）：清掉所有快取硬更新
+  if(online && online!==APP_VER){
+    if(window.caches){ for(const k of await caches.keys()) await caches.delete(k); }
+    location.reload();
+  }
 }
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js").then(reg=>{
+  navigator.serviceWorker.register("sw.js", {updateViaCache:"none"}).then(reg=>{
     swReg=reg; reg.update();
     if(reg.waiting && navigator.serviceWorker.controller) showUpdateBar();
     reg.addEventListener("updatefound", ()=>{ const nw=reg.installing;
