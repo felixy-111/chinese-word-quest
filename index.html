@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#6abe30">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -21,7 +21,9 @@
   --ink:#2b2118; --panel:#fffdf5; --panelline:#e6dcc4;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-html,body{margin:0; height:100%;}
+html,body{margin:0; height:100%; overscroll-behavior-y:none;}
+/* 就算個別情境仍擠出橡皮筋，露出的也是天空→草地，不再有「好玩的空白」 */
+html{background:linear-gradient(180deg,var(--sky1),#8fce5a);}
 body{
   font-family:'PingFang TC','Microsoft JhengHei','Heiti TC',sans-serif;
   color:var(--ink);
@@ -222,7 +224,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 @keyframes lspin{0%,100%{transform:rotate(0) scale(1);}50%{transform:rotate(180deg) scale(1.15);}}
 #loading .ltxt{color:#fff; font-size:26px; font-weight:900; letter-spacing:2px; text-shadow:2px 2px 0 #000;}
 #loading .lhint{color:#9fe6b0; font-size:14px; font-weight:700;}
-.critters{position:fixed; left:0; right:0; bottom:5px; height:40px; z-index:0; pointer-events:none; overflow:hidden;}
+.critters{position:fixed; left:0; right:0; bottom:5px; height:40px; z-index:5; pointer-events:none; overflow:hidden;}
 .critter{position:absolute; bottom:0; left:-50px; animation:walk linear infinite;}
 @keyframes walk{ from{transform:translateX(-50px);} to{transform:translateX(102vw);} }
 .critter .hop{display:block; animation:hop 3.2s ease-in-out infinite;}
@@ -388,7 +390,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
-const APP_VER = "v49｜2026.07.13";
+const APP_VER = "v50｜2026.07.13";
 const LS_KEY = "cwq_state_v1";
 let store = loadStore();
 function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
@@ -445,6 +447,17 @@ function unlockTTS(){ if(_ttsUnlocked||!("speechSynthesis" in window))return; _t
   try{ const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); }catch(e){} }
 window.addEventListener("pointerdown", unlockTTS, {once:true});
 window.addEventListener("touchstart", unlockTTS, {once:true});
+// ── 鎖 iOS 橡皮筋滾動（學生會拉著空白區玩）：頁面已在頂/底還往外拉就擋掉 ──
+let _touchY=0;
+document.addEventListener("touchstart", e=>{ _touchY=e.touches[0].clientY; }, {passive:true});
+document.addEventListener("touchmove", e=>{
+  const t=e.target && e.target.tagName;
+  if(t==="TEXTAREA"||t==="SELECT"||t==="INPUT") return;   // 存檔欄等可捲元件放行
+  const el=document.scrollingElement||document.documentElement;
+  const dy=e.touches[0].clientY-_touchY;
+  const atTop=el.scrollTop<=0, atBottom=el.scrollTop+window.innerHeight>=el.scrollHeight-1;
+  if((atTop&&dy>0)||(atBottom&&dy<0)) e.preventDefault();
+}, {passive:false});
 function speak(text){
   if(!store.opt.voice || !("speechSynthesis" in window)) return;
   const ss=window.speechSynthesis;
