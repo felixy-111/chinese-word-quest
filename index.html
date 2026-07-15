@@ -107,8 +107,29 @@ header.bar .sp{flex:1;}
 .charrow{display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap;}
 .char-big{font-size:96px; line-height:1.1; cursor:pointer; color:var(--ink); text-shadow:2px 2px 0 #d8cdb0;}
 .char-big:active{transform:scale(.96);}
+/* 複習頁新字登場：大字先落地、其餘內容延遲淡入（幫學生聚焦） */
+.char-big.chardrop{animation:chardrop .55s cubic-bezier(.32,.72,.35,1);}
+@keyframes chardrop{0%{transform:translateY(-90px) scale(1.12); opacity:0;}
+  50%{transform:translateY(0) scale(1); opacity:1;} 66%{transform:translateY(-14px);}
+  82%{transform:translateY(0);} 91%{transform:translateY(-5px);} 100%{transform:translateY(0);}}
+.rvrest{animation:rvfade .4s ease .72s both;}
+@keyframes rvfade{from{opacity:0; visibility:hidden;} to{opacity:1; visibility:visible;}}
+.markbtn{position:absolute; top:4px; right:6px; font-size:24px; background:none; border:none; cursor:pointer;
+  padding:4px 6px; line-height:1; filter:grayscale(1); opacity:.4; transition:filter .15s,opacity .15s; z-index:2;}
+.markbtn.on{filter:none; opacity:1;}
+.markbtn:active{transform:scale(1.25);}
 .zhuyin{font-size:30px; color:var(--red); font-weight:700; letter-spacing:1px;}
 .spk{font-size:13px; color:var(--diamond-d); font-weight:700; margin-top:4px;}
+/* 生字總表 */
+.ctgrid{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 2px;}
+.ctile{position:relative; width:46px; height:46px; display:flex; align-items:center; justify-content:center;
+  font-size:27px; background:#fff; border:2px solid var(--panelline); border-radius:6px; cursor:pointer; color:var(--ink);}
+.ctile:active{transform:scale(.92);}
+.ctile.unseen{opacity:.45;}
+.ctile.w{border-color:#C0392B; background:#fdecea;}
+.ctile .cstar{position:absolute; top:-8px; right:-7px; font-size:13px; pointer-events:none;}
+.ctsec{margin-top:10px;}
+.ctf.dim{filter:grayscale(.55) brightness(.9);}
 .fields{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px;}
 .field{background:#fff; border:2px solid var(--panelline); border-radius:6px; padding:10px; text-align:left;}
 .field .lab{font-size:12px; color:#9a8c6a; font-weight:700;}
@@ -225,10 +246,13 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 #loading .ltxt{color:#fff; font-size:26px; font-weight:900; letter-spacing:2px; text-shadow:2px 2px 0 #000;}
 #loading .lhint{color:#9fe6b0; font-size:14px; font-weight:700;}
 .critters{position:fixed; left:0; right:0; bottom:5px; height:40px; z-index:5; pointer-events:none; overflow:hidden;}
-.critter{position:absolute; bottom:0; left:-50px; animation:walk linear infinite;}
-@keyframes walk{ from{transform:translateX(-50px);} to{transform:translateX(102vw);} }
-.critter .hop{display:block; animation:hop 3.2s ease-in-out infinite;}
-@keyframes hop{0%,80%,100%{transform:translateY(0);} 86%{transform:translateY(-9px);} 92%{transform:translateY(0);} 96%{transform:translateY(-4px);}}
+.critter{position:absolute; bottom:0; left:0; will-change:transform;}
+.critter .cwrap, #buddy .cwrap{display:inline-block;}
+.critter.face-left .cwrap, #buddy.face-left .cwrap{transform:scaleX(-1);}
+.critter .hop{display:block; animation:breathe 3s ease-in-out infinite;}
+.critter.walking .hop{animation:stepbob .45s ease-in-out infinite;}
+@keyframes breathe{0%,100%{transform:translateY(0);}50%{transform:translateY(-1.5px);}}
+@keyframes stepbob{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
 .birds{position:fixed; left:0; right:0; top:0; height:48%; z-index:-1; pointer-events:none; overflow:hidden;}
 .bird{position:absolute; left:-60px; animation:birdfly linear infinite;}
 @keyframes birdfly{ from{transform:translateX(-60px);} to{transform:translateX(105vw);} }
@@ -237,9 +261,9 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 .bird svg .wing{transform-box:fill-box; transform-origin:88% 80%; animation:wflap .2s ease-in-out infinite;}
 @keyframes wflap{0%,100%{transform:rotate(-40deg);}50%{transform:rotate(32deg);}}
 .rare{display:inline-block; filter:drop-shadow(0 0 5px rgba(255,216,61,.85));}
-#buddy{position:fixed; left:0; bottom:6px; z-index:5; pointer-events:none; animation:bwalk 22s linear infinite;}
-@keyframes bwalk{0%{transform:translateX(2vw);}48%{transform:translateX(82vw);}50%{transform:translateX(82vw) scaleX(-1);}98%{transform:translateX(2vw) scaleX(-1);}100%{transform:translateX(2vw);}}
-#buddy svg{animation:bstep .42s ease-in-out infinite;}
+#buddy{position:fixed; left:0; bottom:6px; z-index:5; pointer-events:none; will-change:transform;}
+#buddy svg{animation:breathe 3s ease-in-out infinite;}
+#buddy.walking svg{animation:bstep .42s ease-in-out infinite;}
 @keyframes bstep{0%,100%{transform:translateY(0) rotate(-2.5deg);}50%{transform:translateY(-3px) rotate(2.5deg);}}
 #buddy svg.react-happy{animation:rhappy .5s ease 3;}
 @keyframes rhappy{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-10px) scale(1.12);}}
@@ -390,7 +414,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
-const APP_VER = "v51｜2026.07.14";
+const APP_VER = "v54｜2026.07.15";
 const LS_KEY = "cwq_state_v1";
 let store = loadStore();
 function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
@@ -413,6 +437,7 @@ store.gear = store.gear || {owned:{}, equipped:{}};  // 配件：owned key->1；
 store.lessonDone = store.lessonDone || {};     // "gi|li" -> 1（該關複習首次完成，領過蛋）
 store.daily = store.daily || null;             // 每日任務 {date,seen,ok,lesson,claimed}
 store.shiny = store.shiny || {};               // 合成閃亮版：動物 key -> 1（3 隻同種合成，永久）
+store.marked = store.marked || {};             // ⭐ 老師標注："gi|li|char" -> 1（複習頁右上角星星）
 // store.zoo（動物 key -> 擁有數量）在生物清單定義後做一次性遷移（見 migrateZoo）
 
 let S = {gi:0, li:0, mode:"review", ci:0, quiz:null, range:null};
@@ -458,15 +483,26 @@ document.addEventListener("touchmove", e=>{
   const atTop=el.scrollTop<=0, atBottom=el.scrollTop+window.innerHeight>=el.scrollHeight-1;
   if((atTop&&dy>0)||(atBottom&&dy<0)) e.preventDefault();
 }, {passive:false});
-// ── 單字發音一律念「課本注音」（v51）──
-// 美佳(Meijia)引擎原生支援注音字串直接合成正確讀音（實測「ㄏㄤˊ」與「航」輸出位元組相同），
-// 破音字不會再抓錯讀音；念詞/念句仍用文字（詞語讀音本來就穩）。
-function charSay(c){ return c.zhuyin || c.say || c.char; }
-let _zyMap=null;   // 字 → 注音索引（錯題本只存字，念音時查這裡）
-function zhuyinOf(ch){
-  if(!_zyMap){ _zyMap={};
-    DATA.grades.forEach(g=>g.lessons.forEach(l=>l.chars.forEach(c=>{ if(c.zhuyin && !_zyMap[c.char]) _zyMap[c.char]=c.zhuyin; }))); }
-  return _zyMap[ch]||null;
+// ── 單字發音（v54）：不再把注音字串丟給 TTS ──
+// v51 的注音直讀法在含ㄨ/ㄩ的音節會被逐符號拼念（iPad 明顯，Mac 的 say 實測同樣壞），
+// 改為：非破音字直接念本字（單一讀音，任何引擎都穩）；破音字查「定音錨」——
+// 同讀音且無歧義的字（單獨念會抓錯讀音的 17 字，已逐一用 say MD5 驗證），
+// 輕聲等找不到單字錨的用定音詞（衣裳、看著）；不在錨表的破音字＝本字預設讀音即課本讀音。
+const PRON_ANCHOR={
+  "ㄓㄠ":"招","ㄅㄟ":"杯","ㄆㄧㄠˋ":"票","ㄉㄧˋ":"弟","ㄊㄨˇ":"土","ㄍㄢ":"甘",
+  "ㄏㄜˊ":"河","ㄐㄧㄠˋ":"叫","ㄐㄩㄝˊ":"決","ㄑㄧㄝˋ":"怯","ㄓㄤˇ":"掌","ㄓㄨㄥˇ":"腫",
+  "ㄔㄨㄥˊ":"蟲","ㄕㄜˊ":"蛇","ㄗˇ":"子","ㄧㄚ":"鴨","ㄨㄟˋ":"位",
+  "ㄕㄤ˙":"衣裳","ㄓㄜ˙":"看著","ㄗ˙":"桌子","ㄏㄚˊ":"蛤蟆","ㄛ":"噢"
+};
+function charSay(c){
+  if(c.polyphone && PRON_ANCHOR[c.zhuyin]) return PRON_ANCHOR[c.zhuyin];
+  return (c.say && c.say.length===1) ? c.say : c.char;   // 康軒特例 仔→子；其餘念本字
+}
+let _chMap=null;   // 字 → 字物件索引（錯題本只存字，念音時查這裡走 charSay）
+function sayOfChar(ch){
+  if(!_chMap){ _chMap={};
+    DATA.grades.forEach(g=>g.lessons.forEach(l=>l.chars.forEach(c=>{ if(!_chMap[c.char]) _chMap[c.char]=c; }))); }
+  const c=_chMap[ch]; return c ? charSay(c) : ch;
 }
 function speak(text){
   if(!store.opt.voice || !("speechSynthesis" in window)) return;
@@ -509,6 +545,7 @@ const sBreak=()=>{ tone(130,.12,"square",.09); tone(70,.16,"sawtooth",.06,.02); 
 const sAchv=()=>{ [880,1175,1568].forEach((f,i)=>tone(f,.12,"sine",.06,i*.08)); };           // 成就解鎖
 const sComboTone=(n)=>{ const b=520+Math.min(n,14)*38; tone(b,.10,"square",.06); tone(b*1.5,.08,"sine",.04,.04); }; // 連擊漸高
 const sGem=()=>{ [1047,1319,1568,2093].forEach((f,i)=>tone(f,.10,"sine",.05,i*.05)); };       // 撿礦石
+const sThud=()=>{ tone(95,.11,"square",.09); tone(58,.16,"sine",.07,.02); noise(.09,.06); };  // 大字落地「咚」
 
 const grade=()=>DATA.grades[S.gi];
 const lesson=()=>grade().lessons[S.li];
@@ -660,9 +697,10 @@ function viewStats(){
     ${rareSecs}
     <div class="field full"><div class="lab">📕 弱點字（抽考錯過的字，點唸音）</div><div style="margin-top:6px">${weakHTML}</div></div>
     <div class="field full"><div class="lab">🏅 成就</div>${achvHTML}</div>
-    <div class="navrow"><button class="btn btn-diamond" id="reportBtn">📊 各課表現</button><button class="btn btn-stone" id="sback">◀ 返回</button></div></div>`;
-  document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(zhuyinOf(x.dataset.ch)||x.dataset.ch);});
+    <div class="navrow"><button class="btn btn-gold" id="chartBtn2">📋 生字總表</button><button class="btn btn-diamond" id="reportBtn">📊 各課表現</button><button class="btn btn-stone" id="sback">◀ 返回</button></div></div>`;
+  document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(sayOfChar(x.dataset.ch));});
   const fs=document.getElementById("fuseShortcut"); if(fs) fs.onclick=()=>{sClick(); viewFusion();};
+  document.getElementById("chartBtn2").onclick=()=>{sClick(); viewCharTable(viewStats);};
   document.getElementById("reportBtn").onclick=()=>{sClick(); viewReport();};
   document.getElementById("sback").onclick=()=>{sClick(); viewHome();};
 }
@@ -682,8 +720,47 @@ function viewReport(){
   elView.innerHTML=`<div class="card block" style="text-align:left">
     <div class="q-prompt">📊 各課表現（老師診斷用）</div>${rows}
     <div class="navrow"><button class="btn btn-stone" id="rpBack">◀ 返回</button></div></div>`;
-  document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(zhuyinOf(x.dataset.ch)||x.dataset.ch);});
+  document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(sayOfChar(x.dataset.ch));});
   document.getElementById("rpBack").onclick=()=>{sClick(); viewStats();};
+}
+// ====== 生字總表（老師總覽：不熟 + ⭐標注 + 進度，點字直達複習）======
+function viewCharTable(back){
+  back = back || viewLessons;
+  document.getElementById("crumb").textContent="生字總表";
+  const g=grade();
+  let total=0, nWrong=0, nMark=0;
+  const secs=g.lessons.map((l,i)=>{
+    const wrong=store.wrong[S.gi+"|"+i]||[];
+    const tiles=l.chars.map((c,ci)=>{ total++;
+      const isW=wrong.includes(c.char), isM=!!store.marked[S.gi+"|"+i+"|"+c.char];
+      const seen=!!store.seen[S.gi+"|"+i+"|"+c.char];
+      if(isW)nWrong++; if(isM)nMark++;
+      return `<div class="ctile kai${isW?' w':''}${isM?' m':''}${seen?'':' unseen'}" data-li="${i}" data-ci="${ci}">${esc(c.char)}${isM?'<span class="cstar">⭐</span>':''}</div>`;
+    }).join("");
+    return `<div class="ctsec"><div class="lab">第${l.id}關 ${esc(l.title)}</div><div class="ctgrid">${tiles}</div></div>`;
+  }).join("");
+  elView.innerHTML=`<div class="card block" style="text-align:left">
+    <div class="q-prompt">📋 生字總表（點字直接複習）</div>
+    <div class="statline" style="margin-bottom:8px">共 ${total} 字 ‧ 📕 不熟 ${nWrong} ‧ ⭐ 標注 ${nMark} ‧ 淡灰＝還沒複習過</div>
+    <div class="navrow" style="margin-bottom:6px">
+      <button class="btn btn-grass ctf" data-f="all">全部</button>
+      <button class="btn btn-stone ctf" data-f="w">📕 只看不熟</button>
+      <button class="btn btn-stone ctf" data-f="m">⭐ 只看標注</button></div>
+    ${secs}
+    <div class="navrow" style="margin-top:14px"><button class="btn btn-stone" id="ctBack">◀ 返回</button></div></div>`;
+  let filter="all";
+  const applyFilter=()=>{
+    elView.querySelectorAll(".ctf").forEach(b=>b.classList.toggle("dim",b.dataset.f!==filter));
+    elView.querySelectorAll(".ctile").forEach(t=>{
+      t.style.display=(filter==="all"||t.classList.contains(filter))?"":"none"; });
+    elView.querySelectorAll(".ctsec").forEach(s=>{
+      s.style.display=[...s.querySelectorAll(".ctile")].some(t=>t.style.display!=="none")?"":"none"; });
+  };
+  elView.querySelectorAll(".ctf").forEach(b=>b.onclick=()=>{sClick(); filter=b.dataset.f; applyFilter();});
+  elView.querySelectorAll(".ctile").forEach(t=>t.onclick=()=>{
+    S.range=null; S.li=+t.dataset.li; S.ci=+t.dataset.ci; S.mode="review"; sPlace(); viewStudy(); });
+  document.getElementById("ctBack").onclick=()=>{sClick(); back();};
+  applyFilter();
 }
 
 // ====== 第二波：角色 / 生物 / 載入畫面（全自製像素，非 Minecraft 官方美術）======
@@ -766,9 +843,9 @@ function buddySVG(mood){
     ${tool}
     <rect x="5" y="15" width="2.6" height="5" fill="#3a5a8a"/><rect x="8.4" y="15" width="2.6" height="5" fill="#3a5a8a"/></svg>`;
 }
-function renderBuddy(mood){ const b=document.getElementById("buddy"); if(b) b.innerHTML=buddySVG(mood||'idle'); }
+function renderBuddy(mood){ const b=document.getElementById("buddy"); if(b) b.innerHTML='<div class="cwrap">'+buddySVG(mood||'idle')+'</div>'; }
 function buddyReact(mood){ const b=document.getElementById("buddy"); if(!b) return;
-  b.innerHTML=buddySVG(mood); const svg=b.querySelector('svg');
+  b.innerHTML='<div class="cwrap">'+buddySVG(mood)+'</div>'; const svg=b.querySelector('svg');
   if(svg) svg.classList.add(mood==='happy'?'react-happy':'react-sad');
   setTimeout(()=>{ renderBuddy('idle'); }, 1300); }
 function pigSVG(){ return `<svg class="hop" viewBox="0 0 16 12" width="42" height="32" shape-rendering="crispEdges">
@@ -1131,13 +1208,56 @@ const MILESTONES_HANLIN=[
 function milestonesFor(gi){ const g=DATA.grades[gi];
   return (g && g.publisher==="翰林") ? MILESTONES_HANLIN : MILESTONES; }
 function milestoneOf(from,to){ return milestonesFor(S.gi).find(m=>m.from===from&&m.to===to); }
-function spawnCritters(){ const box=document.getElementById("critters"); if(!box) return; box.innerHTML="";
+// 漫遊狀態機：平常發呆（微呼吸），偶爾往左右走一小段；全部生物同時最多 2 隻在走
+let wandersActive=0;
+function startWander(el, opts){
+  const o=opts||{}; let stopped=false;
+  const idleMin=o.idleMin||4000, idleMax=o.idleMax||12000;
+  const stepMin=o.stepMin||40, stepMax=o.stepMax||140;
+  const speedMin=o.speedMin||28, speedMax=o.speedMax||45;
+  const minFrac=o.minFrac||0, maxFrac=o.maxFrac||1, margin=(o.margin==null?4:o.margin);
+  let x=o.x||0;
+  el.style.transform="translateX("+x+"px)";
+  function alive(){ return !stopped && el.isConnected; }
+  function later(fn,ms){ setTimeout(()=>{ if(alive()) fn(); }, ms); }
+  function rest(){ later(tryWalk, idleMin+Math.random()*(idleMax-idleMin)); }
+  function tryWalk(){
+    if(wandersActive>=2){ later(tryWalk, 800+Math.random()*2200); return; }
+    const w=el.offsetWidth||44;
+    const minX=innerWidth*minFrac+margin, maxX=Math.max(minX, innerWidth*maxFrac-w-margin);
+    x=Math.min(Math.max(x,minX),maxX);            // 視窗大小變過的話先夾回範圍內
+    let dir=Math.random()<.5?-1:1;
+    const dist=stepMin+Math.random()*(stepMax-stepMin);
+    if(x+dir*dist<minX || x+dir*dist>maxX) dir=-dir;   // 靠邊就往回走
+    const target=Math.min(Math.max(x+dir*dist,minX),maxX);
+    const dur=Math.abs(target-x)/(speedMin+Math.random()*(speedMax-speedMin));
+    if(dur<.3){ rest(); return; }                  // 沒空間可走，繼續發呆
+    wandersActive++;
+    el.classList.toggle("face-left", target<x);
+    el.classList.add("walking");
+    el.style.transition="transform "+dur.toFixed(2)+"s linear";
+    x=target;
+    requestAnimationFrame(()=>{ el.style.transform="translateX("+x+"px)"; });
+    setTimeout(()=>{ wandersActive=Math.max(0,wandersActive-1);
+      if(!alive()) return;
+      el.classList.remove("walking"); el.style.transition="";
+      rest(); }, dur*1000+80);
+  }
+  rest();
+  return ()=>{ stopped=true; };
+}
+let critterStops=[];
+function spawnCritters(){ const box=document.getElementById("critters"); if(!box) return;
+  critterStops.forEach(s=>s()); critterStops=[]; box.innerHTML="";
   const list=GROUND_BASE.map(f=>f());
   GROUND_UNLOCK.forEach(a=>{ if(store.zoo[a.key]||store.shiny[a.key]) list.push(critterMarkup(a,false)); });
   RARE_EGG.filter(a=>!a.sky).forEach(a=>{ if(store.zoo[a.key]||store.shiny[a.key]) list.push(critterMarkup(a,true)); });
   MILESTONES.filter(m=>!m.sky&&store.rares[m.key]).forEach(m=>list.push('<span class="rare">'+m.svg()+'</span>'));
-  list.forEach((svg,i)=>{ const c=document.createElement("div"); c.className="critter"; c.innerHTML=svg;
-    c.style.animationDuration=(12+i*2.2)+"s"; c.style.animationDelay=(-i*3.2)+"s"; box.appendChild(c); }); }
+  const slot=(innerWidth-70)/list.length;
+  list.forEach((svg,i)=>{ const c=document.createElement("div"); c.className="critter";
+    c.innerHTML='<div class="cwrap">'+svg+'</div>'; box.appendChild(c);
+    const x=Math.min(4+i*slot+Math.random()*slot*.6, innerWidth-60);   // 均勻散開＋抖動
+    critterStops.push(startWander(c,{x:x})); }); }
 function spawnBirds(){ const box=document.getElementById("birds"); if(!box) return; box.innerHTML="";
   let items=[sparrowSVG()];                       // 預設固定一隻麻雀在飛（不靠解鎖）
   BIRDS.forEach(b=>{ if(store.zoo[b.key]||store.shiny[b.key]) items.push(critterMarkup(b,false)); });
@@ -1278,6 +1398,8 @@ function viewHelp(){
       首頁選「年級」→ 選「課」→ 上方切「📖 複習」或「📝 抽考」。</div>
     <div class="field full"><div class="lab">📖 複習模式（學生自學）</div>
       ‧ 每個生字看：注音、部首、筆畫、造詞、造句<br>
+      ‧ <b>新字會「咚」地落下登場</b>，注音和造詞造句隨後才出現（幫學生把注意力放在字上）<br>
+      ‧ 卡片右上角 <b>☆ 星星鈕（老師用）</b>：覺得要加強的字點一下標 ⭐、再點取消，標過的字會出現在「生字總表」<br>
       ‧ <b>🔖 認讀字</b>（只要會認、不用會寫的字）會在大字下方標註<br>
       ‧ <b>破音字（多音字）</b>會多一張卡，列出不同詞的不同唸法（如「綠色 ㄌㄩˋ／鴨綠江 ㄌㄨˋ」），可點詞唸音<br>
       ‧ 複習頁下方有<b>本課句型</b>（該課專屬的照樣造句範例，詳見下方說明）<br>
@@ -1308,11 +1430,15 @@ function viewHelp(){
       ‧ 複習、答對都得 <b>XP</b> 升等級，<b>升級時主角換上新裝備</b>（越來越神氣）<br>
       ‧ <b>每一關複習看完 → 結算畫面＋第一次完成送 🥚 蛋</b>，點蛋孵出隨機小動物進圖鑑<br>
       ‧ <b>抽考 80 分以上 → 🥈 銀蛋；100 分 → 🥇 金蛋</b>（金蛋有機會孵出暗影人、鐵巨人、火焰精靈、企鵝等稀有生物；一次至少考 5 題）＋💎 礦石<br>
-      ‧ 蛋池裡也有<b>殭屍、骷髏弓箭手、大蜘蛛、史萊姆</b>等怪物夥伴，孵到會在地面陪你走<br>
+      ‧ 蛋池裡也有<b>殭屍、骷髏弓箭手、大蜘蛛、史萊姆</b>等怪物夥伴，孵到會住在下方草地，平常休息、偶爾散步走動<br>
       ‧ 答對、完成關卡、每日任務都賺 <b>💰 金幣</b>，到首頁「🏪 商店」買木劍、氣球、彩虹光環等配件給主角穿<br>
       ‧ <b>📋 每日任務</b>：每天 3 個小任務（看字／答對／完成一關），各 +10💰，全完成再送一顆蛋<br>
       ‧ <b>🔨 合成台</b>：孵到<b>重複</b>的動物會記次數（×2、×3…）；到首頁「🔨 合成台」把<b>同一種集滿 3 隻</b>，就能合成 1 隻<b>閃亮版</b> ✨——牠會在世界裡<b>發光</b>，圖鑑那格也會變金框亮起來（每種一隻，永久保留）<br>
       ‧ <b>範圍挑戰全對 → 解鎖神獸</b>（青龍、金龍…只有這裡拿得到）；解<b>成就徽章</b>；連續學習累積<b>天數 🔥</b></div>
+    <div class="field full"><div class="lab">📋 生字總表（老師總覽）</div>
+      ‧ 課次地圖或「我的進度」點「📋 生字總表」，整冊生字一頁看完<br>
+      ‧ <b>紅框</b>＝抽考後不熟的字（答對會自動消掉）；<b>⭐</b>＝老師標注的字；<b>淡灰</b>＝還沒複習過<br>
+      ‧ 可切「只看不熟」「只看標注」快速掃描；<b>點任何一個字直接跳到該字複習頁</b></div>
     <div class="field full"><div class="lab">📊 我的進度</div>
       點最上面的<b>等級條</b>，可看：等級、總正確率、<b>生物圖鑑</b>、<b>弱點字</b>、成就；裡面「📊 各課表現」可看<b>每課正確率、不熟的字與部首</b>（老師診斷用）。</div>
     <div class="field full"><div class="lab">🔧 右上角小工具</div>
@@ -1427,9 +1553,11 @@ function viewLessons(){
       <div class="meta">${l.chars.length} 字 ‧ 已複習 ${seen}/${l.chars.length} ‧ 正確率 ${acc}${(store.wrong[S.gi+"|"+i]||[]).length?(' ‧ 不熟 '+(store.wrong[S.gi+"|"+i]||[]).length+'字'):''}</div>
       <div class="bar2"><i style="width:${pct}%"></i></div></div>`;
   }).join("");
-  elView.innerHTML=`<div style="margin-bottom:12px"><button class="btn btn-diamond" id="rangeBtn" style="width:100%">🐉 範圍挑戰（跨課複習 / 全對解鎖稀有生物）</button></div><div class="lesson-grid">${cards}</div>`;
+  elView.innerHTML=`<div style="margin-bottom:8px"><button class="btn btn-diamond" id="rangeBtn" style="width:100%">🐉 範圍挑戰（跨課複習 / 全對解鎖稀有生物）</button></div>
+    <div style="margin-bottom:12px"><button class="btn btn-gold" id="chartBtn" style="width:100%">📋 生字總表（不熟、⭐標注 一目瞭然）</button></div><div class="lesson-grid">${cards}</div>`;
   elView.querySelectorAll(".lesson-card").forEach(c=>c.onclick=()=>{S.range=null; S.li=+c.dataset.li; S.ci=0; S.mode="review"; sPlace(); viewStudy();});
   document.getElementById("rangeBtn").onclick=()=>{sClick(); viewRange();};
+  document.getElementById("chartBtn").onclick=()=>{sClick(); viewCharTable();};
   renderBuddy('idle');
 }
 
@@ -1482,7 +1610,9 @@ function viewStudy(){
 }
 
 // ---- 複習 ----
+let reviewTimers=[];   // 落地音效與自動念字的排程；換字時先清掉，避免念到上一個字
 function renderReview(){
+  reviewTimers.forEach(clearTimeout); reviewTimers=[];
   const chars=currentChars(), c=chars[S.ci];
   if(!S.range){ const sk=S.gi+"|"+S.li+"|"+c.char;
     if(!store.seen[sk]){ store.seen[sk]=1; saveStore(); addXP(2); flashHUD(); if(seenCount()>=100) unlock("see100"); }
@@ -1498,12 +1628,14 @@ function renderReview(){
   const polySec = c.polyphone ? `<div class="field full"><div class="lab">🔤 多音字「${esc(c.char)}」（不同詞不同唸法，點詞唸音）</div><div class="tagrow">${polyTags(c.polyphone)}</div></div>` : "";
   const lp = (!S.range)? lessonPatterns() : null;
   const patSec = (lp&&lp.length)? `<details class="field full patbox"><summary style="cursor:pointer;font-weight:700;color:#1F3A5F;font-size:13px;list-style-position:inside;padding:2px 0">📝 本課句型（點開看照樣造句，至少 15 字）</summary>${lp.map(pt=>`<div style="margin-top:6px"><b style="color:#1F3A5F">${esc(pt.p)}</b><div class="val pex" data-ex="${esc(pt.ex)}" style="font-weight:600;cursor:pointer;margin:2px 0">🔊 ${esc(pt.ex)}</div><div style="font-size:13px;color:#666">換你造：${esc(pt.blank)}</div></div>`).join("")}</details>` : "";
-  document.getElementById("sub").innerHTML=`<div class="card block">
+  document.getElementById("sub").innerHTML=`<div class="card block" style="position:relative">
+    ${S.range?'':'<button class="markbtn" id="markBtn" title="老師標注（再點取消）">⭐</button>'}
     <div class="charrow">
-      <div><div class="char-big kai" id="bigChar">${esc(c.char)}</div><div class="spk">👆 點字唸給我聽</div>${c.recog?'<div class="recogbadge">🔖 認讀字（只要會認、不用會寫）</div>':''}
-        <button class="btn btn-diamond" id="strokeBtn" style="font-size:14px;padding:6px 14px;margin-top:8px;width:auto">✍️ 看筆順</button></div>
-      <div><div class="zhuyin">${zhuyinHTML}</div></div>
+      <div><div class="char-big kai chardrop" id="bigChar">${esc(c.char)}</div><div class="rvrest"><div class="spk">👆 點字唸給我聽</div>${c.recog?'<div class="recogbadge">🔖 認讀字（只要會認、不用會寫）</div>':''}
+        <button class="btn btn-diamond" id="strokeBtn" style="font-size:14px;padding:6px 14px;margin-top:8px;width:auto">✍️ 看筆順</button></div></div>
+      <div class="rvrest"><div class="zhuyin">${zhuyinHTML}</div></div>
     </div>
+    <div class="rvrest">
     <div class="fields">
       <div class="field"><div class="lab">部首</div><div class="val kai">${radHTML}</div></div>
       <div class="field"><div class="lab">筆畫</div><div class="val">${strokeHTML}</div></div>
@@ -1513,6 +1645,7 @@ function renderReview(){
     </div>
     ${wrongSec}
     ${patSec}
+    </div>
     <div class="navrow">
       <button class="btn btn-stone" id="prev">◀ 上一個</button>
       <span class="counter">${S.ci+1} / ${chars.length}</span>
@@ -1520,10 +1653,16 @@ function renderReview(){
     </div>
     <div class="hint">綠色經驗條會記住你看過哪些字</div></div>`;
   document.getElementById("bigChar").onclick=()=>{sClick(); speak(charSay(c));};
+  const mb=document.getElementById("markBtn");
+  if(mb){ const mk=S.gi+"|"+S.li+"|"+c.char;
+    mb.classList.toggle("on",!!store.marked[mk]);
+    mb.onclick=()=>{ sClick();
+      if(store.marked[mk]) delete store.marked[mk]; else store.marked[mk]=1;
+      saveStore(); mb.classList.toggle("on",!!store.marked[mk]); }; }
   document.getElementById("strokeBtn").onclick=()=>{sClick(); openStroke(c.char);};
   if(c.sentence) document.getElementById("sentSay").onclick=()=>{sClick(); speak(c.sentence);};
   document.querySelectorAll(".tag").forEach(t=>t.onclick=()=>{sClick(); speak(t.dataset.say);});
-  document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(zhuyinOf(x.dataset.ch)||x.dataset.ch);});
+  document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(sayOfChar(x.dataset.ch));});
   document.querySelectorAll(".pex").forEach(x=>x.onclick=()=>{sClick(); speak(x.dataset.ex);});
   document.getElementById("prev").onclick=()=>{ if(S.ci>0){S.ci--; sClick(); renderReview();} };
   document.getElementById("next").onclick=()=>{
@@ -1531,7 +1670,9 @@ function renderReview(){
     else if(S.range){ sWin(); viewRange(); }
     else renderReviewDone(chars);
   };
-  speak(charSay(c));
+  // 新字登場節奏：字落地（約 0.3s）「咚」→ 落定後才念字 → 其餘內容淡入（CSS .rvrest 0.72s）
+  reviewTimers.push(setTimeout(sThud,300));
+  reviewTimers.push(setTimeout(()=>speak(charSay(c)),620));
 }
 
 // ---- 複習結算（每次看完整關都有回饋；蛋與大額 XP 只給首次完成）----
@@ -1765,6 +1906,9 @@ renderHUD();
 if(!store.lvl48){ store.lvl48=1; saveStore();
   if(store.xp>=40) setTimeout(()=>toast("⬆️ 等級系統更新！升級變快了，看看你的新等級 →","level"),1500); }
 renderBuddy('idle'); spawnCritters(); spawnBirds(); setTimeout(hideLoading,700);
+startWander(document.getElementById("buddy"),
+  {x:innerWidth*(0.05+Math.random()*0.5), idleMin:2000, idleMax:6000,
+   stepMin:80, stepMax:300, speedMin:40, speedMax:60, minFrac:0.02, maxFrac:0.86});
 document.getElementById("strokeClose").onclick=()=>document.getElementById("strokeModal").classList.remove("show");
 document.getElementById("unlockClose").onclick=()=>{ sClick(); document.getElementById("unlockModal").classList.remove("show"); };
 document.getElementById("strokeReplay").onclick=()=>{ if(hw) hw.animateCharacter(); };
@@ -1814,6 +1958,14 @@ if("serviceWorker" in navigator){
   }).catch(()=>{});
   navigator.serviceWorker.addEventListener("controllerchange", ()=>{
     if(swRefreshing) return; swRefreshing=true; location.reload();
+  });
+  // iPad PWA 常駐記憶體好幾天不會「重新開啟」，只靠啟動時檢查會一直卡舊版：
+  // 每次切回前景（最多每分鐘一次）再檢查一次，配合上面的自動 skipWaiting 完成無感更新
+  let lastFgCheck=0;
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState!=="visible" || !swReg) return;
+    const t=Date.now(); if(t-lastFgCheck<60000) return;
+    lastFgCheck=t; swReg.update().catch(()=>{});
   });
   const un=document.getElementById("updNow");
   if(un) un.onclick=()=>{ if(swReg && swReg.waiting) swReg.waiting.postMessage("skipWaiting"); else location.reload(); };
