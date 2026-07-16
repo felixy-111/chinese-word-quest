@@ -246,7 +246,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 @keyframes lspin{0%,100%{transform:rotate(0) scale(1);}50%{transform:rotate(180deg) scale(1.15);}}
 #loading .ltxt{color:#fff; font-size:26px; font-weight:900; letter-spacing:2px; text-shadow:2px 2px 0 #000;}
 #loading .lhint{color:#9fe6b0; font-size:14px; font-weight:700;}
-.critters{position:fixed; left:0; right:0; bottom:5px; height:40px; z-index:5; pointer-events:none; overflow:hidden;}
+.critters{position:fixed; left:0; right:0; bottom:5px; height:64px; z-index:5; pointer-events:none; overflow:hidden;}   /* 高度要 ≥ 最高地面生物(56)＋跳躍 5px，否則羊駝/神獸會被切頭 */
 .critter{position:absolute; bottom:0; left:0; will-change:transform;}
 .critter .cwrap, #buddy .cwrap{display:inline-block;}
 .critter.face-left .cwrap, #buddy.face-left .cwrap{transform:scaleX(-1);}
@@ -415,7 +415,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
-const APP_VER = "v56｜2026.07.17";
+const APP_VER = "v57｜2026.07.17";
 const LS_KEY = "cwq_state_v1";
 let store = loadStore();
 function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
