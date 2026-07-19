@@ -419,7 +419,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
-const APP_VER = "v58｜2026.07.17";
+const APP_VER = "v59｜2026.07.20";
 const LS_KEY = "cwq_state_v1";
 let store = loadStore();
 function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
@@ -588,7 +588,17 @@ const LEVEL_NAMES=["生字見習生","生字學徒","生字小高手","生字達
   "見習巫師","符文巫師","星光巫師","大巫師","傳奇巫師",
   "機甲戰士","鋼鐵機甲","雷光機甲","重裝機甲","無敵機甲",
   "星靈使者","星塵行者","星翼守護","星座賢者","銀河星靈",
-  "創世使者","彩虹創世","金翼創世","王冠創世","生字創世神"];
+  "創世使者","彩虹創世","金翼創世","王冠創世","生字創世神",
+  "見習礦工","岩層礦工","熔岩礦工","火山礦工","熔岩礦王",
+  "焰之戰士","烈焰騎士","火冠君主","炎翼君王","烈焰帝王",
+  "機關學徒","齒輪工匠","紅光技師","電路大師","機關之王",
+  "淺海衛兵","珊瑚衛士","深海守衛","海流統領","深海霸主",
+  "霜之學徒","寒冰戰士","冰晶領主","霜翼領主","永凍之王",
+  "叢林新手","藤蔓獵人","猛獸獵者","叢林之靈","叢林之王",
+  "暗影新徒","夜行刺客","暗影行者","幻影大師","暗影之主",
+  "虛空旅人","空間術士","虛空使者","次元守門","虛空之神",
+  "屠龍見習","龍鱗騎士","烈龍騎士","龍王騎士","傳說龍騎",
+  "幼龍之神","金鱗龍神","雙翼龍神","王冠龍神","生字龍神"];
 const LEVELS=LEVEL_NAMES.map((name,i)=>({xp:i*50,name}));
 function levelInfo(){ let i=0; for(let k=0;k<LEVELS.length;k++) if(store.xp>=LEVELS[k].xp) i=k;
   const cur=LEVELS[i], nx=LEVELS[i+1]; return {lv:i+1,name:cur.name,base:cur.xp,next:nx?nx.xp:null,isMax:!nx}; }
@@ -810,7 +820,7 @@ const SLOT_NAME={hand:"🗡️ 手持物", head:"✨ 頭頂特效", back:"🎒 �
 function gearOf(key){ return GEAR.find(g=>g.key===key); }
 function equippedDraw(slot){ const k=((store.gear||{}).equipped||{})[slot]; const g=k&&gearOf(k); return g?g.draw():""; }
 function buddySVG(mood){
-  const lv=Math.min((typeof levelInfo==='function'?levelInfo().lv:1),30);
+  const lv=Math.min((typeof levelInfo==='function'?levelInfo().lv:1),80);
   let body={1:"#3a9d5d",2:"#3a7bd0",3:"#8a4fd0",4:"#2bb3c8",5:"#f0b81e",6:"#1f8a70",7:"#dfe6ee",8:"#6a3fd4",9:"#d63a1f",10:"#ffcf33"}[Math.min(lv,10)];
   const eyes = mood==='sad'
     ? '<rect x="5" y="4" width="1.4" height="1.4"/><rect x="9.6" y="4" width="1.4" height="1.4"/><rect x="12.2" y="3" width="1.5" height="2.2" fill="#7ec8ff"/>'
@@ -885,7 +895,7 @@ function buddySVG(mood){
       if(st>=4) head='<g fill="#fff2b0"><rect x="3.6" y="-4.4" width="1.3" height="1.3"/><rect x="7.4" y="-6" width="1.3" height="1.3"/><rect x="11.2" y="-4.4" width="1.3" height="1.3"/></g><g fill="#9fb8ff" opacity="0.8"><rect x="4.9" y="-3.6" width="2.5" height="0.6"/><rect x="8.7" y="-4.8" width="2.5" height="0.6"/></g>';
       if(st>=5){ aura='<ellipse cx="8" cy="9" rx="11" ry="12" fill="#7f9aff" opacity="0.16"/>';
         extra+='<g><rect x="-5.6" y="0.5" width="3.6" height="1" fill="#fff2b0" transform="rotate(-24 -5.6 .5)"/><rect x="17.6" y="13" width="3.6" height="1" fill="#fff2b0" transform="rotate(-24 17.6 13)"/></g>'; }
-    } else { // 創世神：金身 → +彩虹光環 → +金翼 → +皇冠 → +全身放射金光
+    } else if(sr===4){ // 創世神：金身 → +彩虹光環 → +金翼 → +皇冠 → +全身放射金光
       body="#ffcf33";
       cape='<rect x="2.3" y="8" width="11.4" height="8" fill="#ffde59"/>';
       extra+='<rect x="4" y="8" width="8" height="1" fill="#fff2b0"/>';
@@ -894,6 +904,62 @@ function buddySVG(mood){
       if(st>=4) head='<rect x="3.4" y="-1.6" width="9.2" height="2.4" fill="#ffd11a"/><rect x="3.4" y="-4" width="2" height="2.6" fill="#ffd11a"/><rect x="6" y="-4.8" width="1.8" height="3.4" fill="#ffd11a"/><rect x="8.6" y="-4.8" width="1.8" height="3.4" fill="#ffd11a"/><rect x="11.2" y="-4" width="2" height="2.6" fill="#ffd11a"/><rect x="6.3" y="-5.6" width="1" height="1" fill="#e23b3b"/><rect x="9.3" y="-5.6" width="1" height="1" fill="#3a7bd0"/><rect x="7.5" y="-1" width="1.6" height="1.4" fill="#3fd0e0"/>';
       if(st>=5){ aura='<ellipse cx="8" cy="9" rx="12" ry="13" fill="#ffe680" opacity="0.24"/><g opacity="0.5" fill="#fff0a0"><rect x="7.5" y="-7.5" width="1" height="3"/><rect x="7.5" y="18.6" width="1" height="3"/><rect x="-6.8" y="8.6" width="3" height="1"/><rect x="19.8" y="8.6" width="3" height="1"/><rect x="-4" y="-3.6" width="2.4" height="1" transform="rotate(45 -4 -3.6)"/><rect x="17.6" y="-4.6" width="2.4" height="1" transform="rotate(-45 17.6 -4.6)"/></g>';
         tool='<rect x="14.2" y="-1" width="2" height="15" fill="#fff2b0"/><rect x="14.4" y="-3" width="1.6" height="2.5" fill="#ffffff"/><rect x="12.6" y="12.4" width="4.4" height="1.8" fill="#ffd11a"/><rect x="13.4" y="13" width="0.8" height="3" fill="#ffd11a"/><rect x="16.2" y="13" width="0.8" height="3" fill="#ffd11a"/>'; }
+    } else if(sr===5){ // 熔岩礦工：工作服＋安全帽 → +礦鎬 → +礦石背包 → +岩漿裂紋 → +熔岩光暈
+      body="#6b4a2a";
+      extra+='<rect x="5.2" y="8" width="1.2" height="4.6" fill="#a87843"/><rect x="9.6" y="8" width="1.2" height="4.6" fill="#a87843"/><rect x="4" y="12.4" width="8" height="1.4" fill="#5a3a1a"/><rect x="7.2" y="12.6" width="1.6" height="1" fill="#c8a86a"/>';
+      head='<rect x="3.2" y="-1.4" width="9.6" height="2.4" fill="#ffc93d"/><rect x="4.6" y="-3.4" width="6.8" height="2.2" fill="#ffc93d"/><rect x="6.8" y="-3" width="2.4" height="2.4" fill="#fff2b0"/><rect x="7.4" y="-2.4" width="1.2" height="1.2" fill="#ffffff"/>';
+      if(st>=2) tool='<rect x="14" y="2.2" width="1.5" height="11" fill="#8a6238"/><rect x="11.6" y="0.4" width="6.4" height="1.7" fill="#aab6c4"/><rect x="11" y="1.2" width="1.4" height="1.8" fill="#8a97a8"/><rect x="17.2" y="1.2" width="1.4" height="1.8" fill="#8a97a8"/>';
+      if(st>=3) wings='<rect x="-1.9" y="8.1" width="6" height="7" fill="#3a2410"/><rect x="-1.6" y="8.4" width="5.4" height="6.4" fill="#c8a86a"/><rect x="-1.6" y="8.4" width="5.4" height="1.3" fill="#e8d0a0"/><rect x="-0.6" y="6.4" width="1.4" height="2.4" fill="#3a2410"/><g fill="#ff6a1a"><rect x="-0.8" y="10.4" width="2" height="2"/><rect x="1.6" y="11.9" width="1.8" height="1.8"/></g><rect x="-0.4" y="10.8" width="0.8" height="0.8" fill="#ffd83d"/>';
+      if(st>=4){ extra+='<g fill="#ff6a1a"><rect x="4.6" y="9.4" width="1" height="2.4"/><rect x="10.4" y="9.8" width="1" height="2"/><rect x="6.8" y="13.9" width="2.4" height="0.9"/></g><g fill="#ff9a3d"><rect x="-3.4" y="18.4" width="3.4" height="1.1"/><rect x="16" y="19" width="3.4" height="1.1"/></g>'; }
+      if(st>=5){ aura='<ellipse cx="8" cy="10" rx="10.5" ry="11.5" fill="#ff7a2a" opacity="0.18"/>';
+        extra+='<g fill="#ffd83d"><rect x="-2.2" y="2" width="1.3" height="1.3"/><rect x="17.2" y="4" width="1.3" height="1.3"/><rect x="-4.2" y="12" width="1.1" height="1.1"/><rect x="18.8" y="13.4" width="1.1" height="1.1"/><rect x="0.4" y="-4" width="1.1" height="1.1"/></g>'; }
+    } else if(sr===6){ // 烈焰君王：焰紅袍 → +火冠 → +火劍 → +火翼 → +烈焰放射
+      body="#d9421f";
+      cape='<rect x="2.3" y="8" width="11.4" height="8" fill="#ff7a2a"/><rect x="2.3" y="16" width="2.6" height="2.2" fill="#ff7a2a"/><rect x="6.4" y="16" width="2.6" height="3" fill="#e23b3b"/><rect x="10.9" y="16" width="2.6" height="2.2" fill="#ff7a2a"/>';
+      extra+='<rect x="6.4" y="9.4" width="3.2" height="1.3" fill="#ffd83d"/>';
+      head='<rect x="3.4" y="-1.2" width="9.2" height="2" fill="#c0392b"/><rect x="4.2" y="-3.8" width="1.8" height="2.8" fill="#ff7a2a"/><rect x="7.1" y="-5.2" width="1.8" height="4.2" fill="#ffd83d"/><rect x="10" y="-3.8" width="1.8" height="2.8" fill="#ff7a2a"/>';
+      if(st>=2) tool='<rect x="14" y="0" width="1.8" height="13" fill="#ff7a2a"/><rect x="14.2" y="-2.6" width="1.4" height="2.8" fill="#ffd83d"/><rect x="12.8" y="12.4" width="4.2" height="1.7" fill="#8a3a1a"/>';
+      if(st>=3) wings='<rect x="-1.2" y="7.5" width="2.6" height="6" fill="#ffd83d"/><rect x="-3" y="8.5" width="2.2" height="5" fill="#ff7a2a"/><rect x="-4.4" y="10" width="2" height="3.5" fill="#e23b3b"/><rect x="12.6" y="7.5" width="2.6" height="6" fill="#ffd83d"/><rect x="14.4" y="8.5" width="2.2" height="5" fill="#ff7a2a"/><rect x="16.4" y="10" width="2" height="3.5" fill="#e23b3b"/>';
+      if(st>=4) extra+='<g fill="#ff7a2a"><rect x="-2.6" y="18.2" width="3.6" height="1.4"/><rect x="15.6" y="18.8" width="3.6" height="1.4"/></g><g fill="#ffd83d"><rect x="-1.8" y="17" width="1.4" height="1.4"/><rect x="17" y="17.6" width="1.4" height="1.4"/><rect x="5.6" y="10.9" width="4.8" height="1.1"/></g>';
+      if(st>=5){ aura='<ellipse cx="8" cy="9" rx="11.5" ry="12.5" fill="#ff6a1a" opacity="0.22"/><g opacity="0.5" fill="#ffd83d"><rect x="7.5" y="-7.5" width="1" height="3"/><rect x="7.5" y="18.6" width="1" height="3"/><rect x="-6.8" y="8.6" width="3" height="1"/><rect x="19.8" y="8.6" width="3" height="1"/></g>';
+        extra+='<g fill="#fff2b0"><rect x="-3" y="3" width="1.2" height="1.2"/><rect x="17.6" y="2" width="1.2" height="1.2"/><rect x="-4.6" y="14" width="1.1" height="1.1"/><rect x="18.4" y="15.4" width="1.1" height="1.1"/></g>'; }
+    } else if(sr===7){ // 紅光機關師：鐵灰工裝＋能量核 → +紅光目鏡 → +齒輪背飾 → +電路紋 → +紅光力場
+      body="#4a5560";
+      extra+='<rect x="6.8" y="9.6" width="2.4" height="2.4" fill="#e23b3b"/><rect x="7.4" y="10.2" width="1.2" height="1.2" fill="#ff9a9a"/>';
+      head='<rect x="3.4" y="-1.4" width="9.2" height="2.2" fill="#5a6572"/><rect x="4.4" y="3.2" width="7.2" height="2.2" fill="#e23b3b" opacity="0.85"/><rect x="4.4" y="3.2" width="7.2" height="0.7" fill="#ff9a9a"/>';
+      if(st>=2) tool='<rect x="13.6" y="8.6" width="5" height="3.6" fill="#5a6572"/><rect x="13.6" y="8.6" width="5" height="1" fill="#8a97a8"/><rect x="18.2" y="9.4" width="1.8" height="2" fill="#e23b3b"/><rect x="14.4" y="12.2" width="1.8" height="2.4" fill="#4a5560"/>';
+      if(st>=3) wings='<g fill="#8a97a8"><rect x="-2.2" y="8.6" width="4.4" height="4.4"/><rect x="-3.2" y="9.6" width="6.4" height="2.4"/><rect x="-1.2" y="7.6" width="2.4" height="6.4"/><rect x="13.8" y="8.6" width="4.4" height="4.4"/><rect x="12.8" y="9.6" width="6.4" height="2.4"/><rect x="14.8" y="7.6" width="2.4" height="6.4"/></g><g fill="#e23b3b"><rect x="-0.6" y="10.2" width="1.2" height="1.2"/><rect x="15.4" y="10.2" width="1.2" height="1.2"/></g>';
+      if(st>=4) extra+='<g fill="#ff5a5a"><rect x="4.4" y="8.4" width="0.8" height="6.2"/><rect x="10.8" y="8.4" width="0.8" height="6.2"/><rect x="2.2" y="12" width="2" height="0.8"/><rect x="11.8" y="12" width="2" height="0.8"/><rect x="5.2" y="15.4" width="0.8" height="4.4"/><rect x="10" y="15.4" width="0.8" height="4.4"/></g>';
+      if(st>=5){ aura='<ellipse cx="8" cy="10" rx="11" ry="12" fill="#e23b3b" opacity="0.17"/>';
+        extra+='<g fill="#ffd0d0"><rect x="-3.6" y="4" width="1.3" height="1.3"/><rect x="18" y="3" width="1.3" height="1.3"/><rect x="-5" y="14" width="1.1" height="1.1"/><rect x="19.4" y="15" width="1.1" height="1.1"/></g>'; }
+    } else if(sr===8){ // 深海守衛：藍鱗甲 → +海貝冠 → +三叉戟 → +水流環繞 → +深海光暈
+      body="#2a7f9e";
+      extra+='<g fill="#5fc8e0"><rect x="4.6" y="9" width="1.4" height="1.4"/><rect x="7.3" y="9" width="1.4" height="1.4"/><rect x="10" y="9" width="1.4" height="1.4"/><rect x="5.9" y="10.8" width="1.4" height="1.4"/><rect x="8.6" y="10.8" width="1.4" height="1.4"/><rect x="4.6" y="12.6" width="1.4" height="1.4"/><rect x="7.3" y="12.6" width="1.4" height="1.4"/><rect x="10" y="12.6" width="1.4" height="1.4"/></g>';
+      head='<rect x="3.6" y="-1.2" width="8.8" height="2" fill="#1f6a86"/><rect x="5" y="-4.6" width="6" height="3.6" fill="#ffd6e8"/><rect x="6.1" y="-4.6" width="0.9" height="3.6" fill="#e8a8c8"/><rect x="8.6" y="-4.6" width="0.9" height="3.6" fill="#e8a8c8"/><rect x="7.2" y="-5.8" width="1.6" height="1.4" fill="#fff2b0"/>';
+      if(st>=2) tool='<rect x="14.2" y="1" width="1.5" height="13" fill="#c8a86a"/><rect x="12.3" y="-2.6" width="1.3" height="4.2" fill="#5fc8e0"/><rect x="14.3" y="-3.8" width="1.3" height="5.4" fill="#5fc8e0"/><rect x="16.3" y="-2.6" width="1.3" height="4.2" fill="#5fc8e0"/><rect x="12.3" y="1" width="5.3" height="1.3" fill="#7fe6f2"/>';
+      if(st>=3) wings='<rect x="0.4" y="5.6" width="2.6" height="3" fill="#1f6a86"/><rect x="-1.2" y="7" width="2.6" height="3.4" fill="#2a9fc8"/><rect x="-2.6" y="9" width="2.4" height="3" fill="#1f6a86"/><rect x="13" y="5.6" width="2.6" height="3" fill="#1f6a86"/><rect x="14.6" y="7" width="2.6" height="3.4" fill="#2a9fc8"/><rect x="16.2" y="9" width="2.4" height="3" fill="#1f6a86"/>';
+      if(st>=4) extra+='<g fill="#7fe6f2" opacity="0.85"><rect x="-3.4" y="4.4" width="3.8" height="1"/><rect x="-4.6" y="13.6" width="3.4" height="1"/><rect x="-3.4" y="16.4" width="3.8" height="1"/><rect x="15.6" y="4.4" width="3.8" height="1"/><rect x="16.8" y="13.6" width="3.4" height="1"/><rect x="15.6" y="16.4" width="3.8" height="1"/></g>';
+      if(st>=5){ aura='<ellipse cx="8" cy="10" rx="11" ry="12" fill="#2a9fc8" opacity="0.2"/>';
+        extra+='<g fill="#bff0fa"><rect x="-3.2" y="1" width="1.6" height="1.6"/><rect x="17.4" y="2.6" width="1.6" height="1.6"/><rect x="-4.6" y="15" width="1.2" height="1.2"/><rect x="18.6" y="16.4" width="1.2" height="1.2"/><rect x="0.6" y="-4.4" width="1.2" height="1.2"/></g>'; }
+    } else if(sr===9){ // 冰霜領主：冰甲肩片 → +冰晶冠 → +冰劍 → +霜翼 → +暴風雪
+      body="#6ec8e8";
+      extra+='<rect x="1.9" y="7.6" width="3.7" height="2.6" fill="#bff0fa"/><rect x="10.4" y="7.6" width="3.7" height="2.6" fill="#bff0fa"/><rect x="6.6" y="9.8" width="2.8" height="1.3" fill="#eaf8ff"/>';
+      head='<rect x="3.6" y="-1.2" width="8.8" height="2" fill="#4aa8cc"/><rect x="4.4" y="-4.2" width="1.6" height="3.2" fill="#bff0fa"/><rect x="7.2" y="-5.6" width="1.6" height="4.6" fill="#eaf8ff"/><rect x="10" y="-4.2" width="1.6" height="3.2" fill="#bff0fa"/>';
+      if(st>=2) tool='<rect x="13.7" y="0.3" width="2.4" height="13.1" fill="#2a7f9e"/><rect x="14" y="0.6" width="1.8" height="12.5" fill="#bff0fa"/><rect x="13.9" y="-2.1" width="2" height="3" fill="#2a7f9e"/><rect x="14.2" y="-1.8" width="1.4" height="2.6" fill="#eaf8ff"/><rect x="12.8" y="12.4" width="4.2" height="1.7" fill="#1f6a86"/>';
+      // 霜翼描深藍外緣，否則白翼疊在淺藍身體＋白光暈上會糊成一片
+      if(st>=3) wings='<g fill="#2a7f9e"><rect x="-1.6" y="7.1" width="3.4" height="6.8"/><rect x="-3.4" y="8.1" width="3" height="5.8"/><rect x="-4.8" y="9.6" width="2.8" height="4.3"/><rect x="12.2" y="7.1" width="3.4" height="6.8"/><rect x="14" y="8.1" width="3" height="5.8"/><rect x="16" y="9.6" width="2.8" height="4.3"/></g><rect x="-1.2" y="7.5" width="2.6" height="6" fill="#eaf8ff"/><rect x="-3" y="8.5" width="2.2" height="5" fill="#bff0fa"/><rect x="-4.4" y="10" width="2" height="3.5" fill="#7fd0e8"/><rect x="12.6" y="7.5" width="2.6" height="6" fill="#eaf8ff"/><rect x="14.4" y="8.5" width="2.2" height="5" fill="#bff0fa"/><rect x="16.4" y="10" width="2" height="3.5" fill="#7fd0e8"/>';
+      if(st>=4) extra+='<g fill="#eaf8ff"><rect x="-2.4" y="16.6" width="1.8" height="3.4"/><rect x="-4" y="17.8" width="1.6" height="2.2"/><rect x="16.6" y="16.6" width="1.8" height="3.4"/><rect x="18.4" y="17.8" width="1.6" height="2.2"/></g><g fill="#bff0fa"><rect x="5.6" y="10.6" width="1.2" height="1.2"/><rect x="9.2" y="12.2" width="1.2" height="1.2"/></g>';
+      if(st>=5){ aura='<ellipse cx="8" cy="9" rx="11.5" ry="12.5" fill="#5fc8e0" opacity="0.18"/>';
+        extra+='<g fill="#ffffff"><rect x="-3.2" y="0" width="1.4" height="1.4"/><rect x="16.8" y="1.6" width="1.4" height="1.4"/><rect x="-5" y="8" width="1.2" height="1.2"/><rect x="19" y="6" width="1.2" height="1.2"/><rect x="-2" y="16.4" width="1.2" height="1.2"/><rect x="17.6" y="17.4" width="1.2" height="1.2"/></g>'; }
+    } else { // 叢林獵者（sr10；sr11+ 暫用此造型，階段 2 補）：藤甲 → +獸首帽 → +弓 → +藤蔓 → +叢林靈光
+      body="#3f7a3a";
+      extra+='<g fill="#6abe30"><rect x="2.2" y="7.4" width="3.1" height="2.1"/><rect x="10.7" y="7.4" width="3.1" height="2.1"/></g><rect x="4" y="12.4" width="8" height="1.3" fill="#8a6238"/>';
+      head='<rect x="3.4" y="-1.6" width="9.2" height="2.6" fill="#8a6238"/><rect x="3.4" y="-3.8" width="2.4" height="2.4" fill="#a0713a"/><rect x="10.2" y="-3.8" width="2.4" height="2.4" fill="#a0713a"/><rect x="4" y="-3.3" width="1.2" height="1.2" fill="#5a3a1a"/><rect x="10.8" y="-3.3" width="1.2" height="1.2" fill="#5a3a1a"/><rect x="6.4" y="-2.8" width="3.2" height="1.5" fill="#a0713a"/>';
+      if(st>=2) tool='<rect x="14.8" y="0" width="1.4" height="14" fill="#8a6238"/><rect x="13.4" y="-0.8" width="1.8" height="2.2" fill="#a0713a"/><rect x="13.4" y="12.6" width="1.8" height="2.2" fill="#a0713a"/><rect x="13.1" y="1.2" width="0.7" height="11.6" fill="#e8e0c8"/>';
+      if(st>=3) wings='<rect x="-1.4" y="7.4" width="4.4" height="6.6" fill="#6b4a2a"/><rect x="-1.4" y="7.4" width="4.4" height="1.2" fill="#8a6238"/><g fill="#e8e0c8"><rect x="-0.6" y="5.2" width="0.9" height="2.6"/><rect x="0.8" y="4.6" width="0.9" height="3.2"/><rect x="2.2" y="5.2" width="0.9" height="2.6"/></g><g fill="#c8d0d4"><rect x="-0.8" y="4.4" width="1.3" height="1.1"/><rect x="0.6" y="3.8" width="1.3" height="1.1"/><rect x="2" y="4.4" width="1.3" height="1.1"/></g>';
+      if(st>=4) extra+='<g fill="#4a9a2a"><rect x="3.3" y="8.6" width="1.1" height="1.1"/><rect x="4.4" y="9.7" width="1.1" height="1.1"/><rect x="3.3" y="10.8" width="1.1" height="1.1"/><rect x="4.4" y="11.9" width="1.1" height="1.1"/><rect x="11.6" y="8.6" width="1.1" height="1.1"/><rect x="10.5" y="9.7" width="1.1" height="1.1"/><rect x="11.6" y="10.8" width="1.1" height="1.1"/><rect x="10.5" y="11.9" width="1.1" height="1.1"/></g><g fill="#6abe30"><rect x="1.5" y="9.4" width="1.7" height="1"/><rect x="12.8" y="10.5" width="1.7" height="1"/></g>';
+      if(st>=5){ aura='<ellipse cx="8" cy="10" rx="11" ry="12" fill="#6abe30" opacity="0.2"/>';
+        extra+='<g fill="#e8ff8a"><rect x="-2.8" y="3" width="1.4" height="1.4"/><rect x="17" y="5" width="1.4" height="1.4"/><rect x="-4.6" y="11" width="1.2" height="1.2"/><rect x="18.8" y="14" width="1.2" height="1.2"/><rect x="0" y="17.4" width="1.2" height="1.2"/></g>'; }
     }
   }
   // 商店配件疊繪：手持物取代等級佩劍（學生自選優先），頭頂/背飾直接疊加
@@ -1536,7 +1602,7 @@ function viewHelp(){
       ‧ 命中<b>里程碑範圍且全對 → 解鎖稀有生物</b>（龍／神獸）<br>
       ‧ 7 個里程碑：每 3 課一段、上下半冊、全冊（越大越稀有，全冊解鎖金龍）</div>
     <div class="field full"><div class="lab">🏆 闖關獎勵（讓學生想一直玩）</div>
-      ‧ <b>每看一個字、每答對一題都有 XP</b>（複習到後半段每字加倍衝刺）；<b>每 50 XP 升一級、共 30 級，每一級主角都換新造型</b>（巫師→機甲→星靈→創世神）<br>
+      ‧ <b>每看一個字、每答對一題都有 XP</b>（複習到後半段每字加倍衝刺）；<b>每 50 XP 升一級、共 80 級，每一級主角都換新造型</b>（巫師→機甲→星靈→創世神→熔岩礦工→烈焰君王→紅光機關師→深海守衛→冰霜領主→叢林獵者…）<br>
       ‧ 複習頁會顯示「🔥 再看幾個字就升級」，每一輪複習至少升一級<br>
       ‧ <b>每一關複習看完 → 結算畫面＋第一次完成送 🥚 蛋</b>，點蛋孵出隨機小動物進圖鑑<br>
       ‧ <b>抽考 80 分以上 → 🥈 銀蛋；100 分 → 🥇 金蛋</b>（金蛋有機會孵出暗影人、鐵巨人、火焰精靈、企鵝等稀有生物；一次至少考 5 題）＋💎 礦石<br>
