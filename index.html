@@ -419,7 +419,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
-const APP_VER = "v59｜2026.07.20";
+const APP_VER = "v60｜2026.07.20";
 const LS_KEY = "cwq_state_v1";
 let store = loadStore();
 function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
@@ -443,7 +443,8 @@ store.lessonDone = store.lessonDone || {};     // "gi|li" -> 1（該關複習首
 store.daily = store.daily || null;             // 每日任務 {date,seen,ok,lesson,claimed}
 store.shiny = store.shiny || {};               // 合成閃亮版：動物 key -> 1（3 隻同種合成，永久）
 store.marked = store.marked || {};             // ⭐ 老師標注："gi|li|char" -> 1（複習頁右上角星星）
-store.stage = store.stage || null;             // 🎪 上場名單：{生物key:1}（最多 8）；null=自動模式（雞豬牛+隨機）
+store.stage = store.stage || null;             // 🎪 地面上場名單：{生物key:1}（最多 8）；null=自動模式（雞豬牛+隨機）
+store.stageSky = store.stageSky || null;       // 🎪 天空上場名單：{生物key:1}（最多 5）；null=自動模式（隨機挑）
 // store.zoo（動物 key -> 擁有數量）在生物清單定義後做一次性遷移（見 migrateZoo）
 
 let S = {gi:0, li:0, mode:"review", ci:0, quiz:null, range:null};
@@ -695,28 +696,36 @@ function viewStats(){
   document.getElementById("crumb").textContent="我的進度";
   const li=levelInfo();
   // 生物圖鑑：開蛋孵出（v48 起不再綁課次/天數；×n 是重複孵到的數量＝之後的合成素材）
-  // v58 上場名單：地面生物 >8 隻時，點「已擁有的地面生物」選誰上場（🎪＝上場中）
-  const stagePick=groundOwned().length>STAGE_MAX;
-  const onStage=k=> store.stage ? !!store.stage[k] : lastStageKeys.has(k);
-  const stageBits=(key,owned,isGround)=>{
-    if(!stagePick||!owned||!isGround) return {cls:'',tag:''};
-    return {cls:' stagecell'+(onStage(key)?' oncall':''), tag:onStage(key)?'<span class="stagetag">🎪</span>':''}; };
-  const baseCells=GROUND_BASE_C.map(a=>{ const b=stageBits(a.key,true,true);
-    return `<div class="zoocell got${b.cls}" data-key="${a.key}"><div class="zoosvg">${a.svg()}</div><div class="zooname">${a.name}</div>${b.tag}</div>`; }).join("");
-  const zooCells=HATCH_ALL.map(a=>{ const n=store.zoo[a.key]||0, sh=!!store.shiny[a.key];
-    const isRare=RARE_EGG.some(r=>r.key===a.key), owned=n>0||sh;
-    const isGround=!a.sky && !BIRDS.some(x=>x.key===a.key);
-    const b=stageBits(a.key,owned,isGround);
-    return `<div class="zoocell ${owned?'got':''} ${sh?'shinycell':''}${b.cls}" data-key="${a.key}">`+(owned
+  // v58 上場名單：生物太多時點「已擁有的生物」選誰上場（🎪＝上場中）
+  // v60 天空／地面各自一套名單與上限：地面 8（要站得下），天空 5（一直飛過去，只避免擠在同一條高度）
+  const stagePickG=groundOwned().length>STAGE_MAX, stagePickS=skyOwned().length>STAGE_SKY_MAX;
+  const onStage=(k,sky)=> sky ? (store.stageSky ? !!store.stageSky[k] : lastSkyKeys.has(k))
+                              : (store.stage    ? !!store.stage[k]    : lastStageKeys.has(k));
+  const stageBits=(key,owned,isSky)=>{
+    if(!owned || !(isSky?stagePickS:stagePickG)) return {cls:'',tag:'',attr:''};
+    const on=onStage(key,isSky);
+    return {cls:' stagecell'+(on?' oncall':''), tag:on?'<span class="stagetag">🎪</span>':'', attr:isSky?' data-layer="sky"':''}; };
+  const cellOf=(a,owned,isRare,isSky,n,sh)=>{ const b=stageBits(a.key,owned,isSky);
+    return `<div class="zoocell ${owned?'got':''} ${sh?'shinycell':''}${b.cls}" data-key="${a.key}"${b.attr}>`+(owned
       ? '<div class="zoosvg">'+critterMarkup(a,isRare)+'</div><div class="zooname">'+a.name+(sh?' ✨':'')+(n>1?' ×'+n:'')+'</div>'+b.tag
-      : '<div class="zoolock">？</div><div class="zooname">'+(isRare?'金蛋限定':'開蛋獲得')+'</div>')+`</div>`; }).join("");
-  const stageInfo=stagePick? `<div class="statline" style="margin:4px 0 0">🎪 上場名單 ${store.stage?Object.keys(store.stage).length:lastStageKeys.size}/${STAGE_MAX}——動物太多草地站不下，<b>點地面動物選誰上場</b>（天上的自由飛翔）</div>`:'';
-  const zooSec=`<div class="field full"><div class="lab">🐾 生物圖鑑 ‧ 已孵出 ${zooCount()} / ${HATCH_ALL.length}（完成關卡、抽考高分、每日任務都會得到蛋）<button class="btn btn-diamond" id="fuseShortcut" style="font-size:12px;padding:4px 10px;width:auto;margin-left:8px">🔨 合成台</button></div>${stageInfo}<div class="zoowall">${baseCells}${zooCells}</div></div>`;
+      : '<div class="zoolock">？</div><div class="zooname">'+(isRare?'金蛋限定':'開蛋獲得')+'</div>')+`</div>`; };
+  const isSkyOf=a=> !!a.sky || BIRDS.some(x=>x.key===a.key);
+  const skyCells=HATCH_ALL.filter(isSkyOf).map(a=>{ const n=store.zoo[a.key]||0, sh=!!store.shiny[a.key];
+    return cellOf(a,n>0||sh,RARE_EGG.some(r=>r.key===a.key),true,n,sh); }).join("");
+  const baseCells=GROUND_BASE_C.map(a=>{ const b=stageBits(a.key,true,false);
+    return `<div class="zoocell got${b.cls}" data-key="${a.key}"><div class="zoosvg">${a.svg()}</div><div class="zooname">${a.name}</div>${b.tag}</div>`; }).join("");
+  const groundCells=HATCH_ALL.filter(a=>!isSkyOf(a)).map(a=>{ const n=store.zoo[a.key]||0, sh=!!store.shiny[a.key];
+    return cellOf(a,n>0||sh,RARE_EGG.some(r=>r.key===a.key),false,n,sh); }).join("");
+  const skyInfo=stagePickS? `　<b>點生物選誰上天飛</b>（${store.stageSky?Object.keys(store.stageSky).length:lastSkyKeys.size}/${STAGE_SKY_MAX}）`:'';
+  const groundInfo=stagePickG? `　<b>點動物選誰上場</b>（${store.stage?Object.keys(store.stage).length:lastStageKeys.size}/${STAGE_MAX}）`:'';
+  const zooSec=`<div class="field full"><div class="lab">🐾 生物圖鑑 ‧ 已孵出 ${zooCount()} / ${HATCH_ALL.length}（完成關卡、抽考高分、每日任務都會得到蛋）<button class="btn btn-diamond" id="fuseShortcut" style="font-size:12px;padding:4px 10px;width:auto;margin-left:8px">🔨 合成台</button></div>
+    <div class="statline" style="margin:4px 0 2px;text-align:left">🌤️ 天空${skyInfo}</div><div class="zoowall">${skyCells}</div>
+    <div class="statline" style="margin:8px 0 2px;text-align:left">🌱 地面${groundInfo}</div><div class="zoowall">${baseCells}${groundCells}</div></div>`;
   // 稀有生物：每個年級各自一段（依該 grade 的里程碑集）
   const rareSecs=DATA.grades.map((g,gi)=>{
     const cells=milestonesFor(gi).map(m=>{ const got=store.rares[m.key];
-      const b=stageBits(m.key,!!got,!m.sky);
-      return `<div class="zoocell ${got?'got':''}${b.cls}" data-key="${m.key}">`+(got?'<div class="zoosvg">'+m.svg()+'</div><div class="zooname">'+m.name+'</div>'+b.tag:'<div class="zoolock">？</div><div class="zooname">第'+m.from+'-'+m.to+'關全對</div>')+`</div>`; }).join("");
+      const b=stageBits(m.key,!!got,!!m.sky);
+      return `<div class="zoocell ${got?'got':''}${b.cls}" data-key="${m.key}"${b.attr}>`+(got?'<div class="zoosvg">'+m.svg()+'</div><div class="zooname">'+m.name+(m.sky?' 🌤️':'')+'</div>'+b.tag:'<div class="zoolock">？</div><div class="zooname">第'+m.from+'-'+m.to+'關全對</div>')+`</div>`; }).join("");
     return `<div class="field full"><div class="lab">✨ 稀有生物 ‧ ${esc(g.label||g.grade)}（範圍挑戰全對解鎖）</div><div class="zoowall">${cells}</div></div>`; }).join("");
   const acc= store.stats.quizTotal? Math.round(store.stats.quizOk/store.stats.quizTotal*100):0;
   const achvHTML=ACHV.map(a=>`<div class="achvrow ${store.achv[a.id]?'':'locked'}">
@@ -734,7 +743,8 @@ function viewStats(){
   document.querySelectorAll(".wrongchip").forEach(x=>x.onclick=()=>{sClick(); speak(sayOfChar(x.dataset.ch));});
   const fs=document.getElementById("fuseShortcut"); if(fs) fs.onclick=()=>{sClick(); viewFusion();};
   elView.querySelectorAll(".stagecell").forEach(c=>c.onclick=()=>{ sClick();
-    if(toggleStage(c.dataset.key)) viewStats(); });   // 超過 8 隻被擋時只跳 toast、不重繪
+    const sky=c.dataset.layer==="sky";
+    if(sky? toggleStageSky(c.dataset.key) : toggleStage(c.dataset.key)) viewStats(); });   // 超過上限被擋時只跳 toast、不重繪
   document.getElementById("chartBtn2").onclick=()=>{sClick(); viewCharTable(viewStats);};
   document.getElementById("reportBtn").onclick=()=>{sClick(); viewReport();};
   document.getElementById("sback").onclick=()=>{sClick(); viewHome();};
@@ -1261,9 +1271,10 @@ function showEgg(type){
     setTimeout(()=>{
       const a=drawEgg(type); const had=store.zoo[a.key]||0;
       store.zoo[a.key]=had+1;
-      // 孵到新的地面物種：上場名單沒滿就自動排入（馬上看得到牠在草地走）
+      // 孵到新物種：該層的上場名單沒滿就自動排入（馬上看得到牠在草地走／在天上飛）
       const isGround=GROUND_UNLOCK.concat(RARE_EGG.filter(r=>!r.sky)).some(g=>g.key===a.key);
       if(!had && isGround && store.stage && Object.keys(store.stage).length<STAGE_MAX) store.stage[a.key]=1;
+      if(!had && !isGround && store.stageSky && Object.keys(store.stageSky).length<STAGE_SKY_MAX) store.stageSky[a.key]=1;
       saveStore();
       body.innerHTML=a.svg();
       if(had){ addCoins(10); name.textContent="又一隻"+a.name+"！（×"+(had+1)+"）+10💰"; }
@@ -1398,8 +1409,10 @@ function startWander(el, opts){
 }
 let critterStops=[];
 // ── v58 上場名單：地面生物 >8 隻時只上 8 隻（學生在圖鑑點選；未自訂則雞豬牛＋隨機 5）──
-const STAGE_MAX=8;
+// ── v60 天空比照辦理，但兩層各自一套名單與上限：地面要站得下（間距／漫遊），天空只是一直飛過去 ──
+const STAGE_MAX=8, STAGE_SKY_MAX=5;
 let lastStageKeys=new Set();   // 本次實際站上草地的 key（自動模式下當「目前名單」給圖鑑初始化用）
+let lastSkyKeys=new Set();     // 天空同上
 function groundOwned(){        // 擁有的地面生物（圖鑑選隊與上場共用；基礎三隻永久擁有）
   const out=GROUND_BASE_C.map(a=>({key:a.key, mk:a.svg()}));
   GROUND_UNLOCK.forEach(a=>{ if(store.zoo[a.key]||store.shiny[a.key]) out.push({key:a.key, mk:critterMarkup(a,false)}); });
@@ -1408,15 +1421,33 @@ function groundOwned(){        // 擁有的地面生物（圖鑑選隊與上場�
     .forEach(m=>out.push({key:m.key, mk:'<span class="rare">'+m.svg()+'</span>'}));
   return out;
 }
+function skyOwned(){           // 擁有的天空生物（鳥＋天空稀有＋兩套里程碑的天空神獸）
+  const out=[];
+  BIRDS.forEach(b=>{ if(store.zoo[b.key]||store.shiny[b.key]) out.push({key:b.key, mk:critterMarkup(b,false)}); });
+  RARE_EGG.filter(a=>a.sky).forEach(a=>{ if(store.zoo[a.key]||store.shiny[a.key]) out.push({key:a.key, mk:critterMarkup(a,true)}); });
+  MILESTONES.concat(MILESTONES_HANLIN).filter(m=>m.sky&&store.rares[m.key])
+    .forEach(m=>out.push({key:m.key, mk:'<span class="rare">'+m.svg()+'</span>'}));
+  return out;
+}
 function toggleStage(key){
   if(!store.stage){ store.stage={}; lastStageKeys.forEach(k=>store.stage[k]=1); }   // 首次自訂：從目前草地名單起手，畫面不突變
   if(store.stage[key]){ delete store.stage[key];
     if(!Object.keys(store.stage).length) store.stage=null;   // 全點掉 → 回自動模式
   } else {
-    if(Object.keys(store.stage).length>=STAGE_MAX){ toast("🎪 上場名單最多 "+STAGE_MAX+" 隻，先點掉一隻吧",""); return false; }
+    if(Object.keys(store.stage).length>=STAGE_MAX){ toast("🎪 地面最多 "+STAGE_MAX+" 隻，先點掉一隻吧",""); return false; }
     store.stage[key]=1;
   }
   saveStore(); spawnCritters(); return true;
+}
+function toggleStageSky(key){
+  if(!store.stageSky){ store.stageSky={}; lastSkyKeys.forEach(k=>store.stageSky[k]=1); }
+  if(store.stageSky[key]){ delete store.stageSky[key];
+    if(!Object.keys(store.stageSky).length) store.stageSky=null;
+  } else {
+    if(Object.keys(store.stageSky).length>=STAGE_SKY_MAX){ toast("🎪 天空最多 "+STAGE_SKY_MAX+" 隻，先點掉一隻吧",""); return false; }
+    store.stageSky[key]=1;
+  }
+  saveStore(); spawnBirds(); return true;
 }
 function spawnCritters(){ const box=document.getElementById("critters"); if(!box) return;
   critterStops.forEach(s=>s()); critterStops=[]; box.innerHTML="";
@@ -1434,12 +1465,20 @@ function spawnCritters(){ const box=document.getElementById("critters"); if(!box
     const x=Math.min(4+i*slot+Math.random()*slot*.45, innerWidth-60);   // 均勻散開＋抖動（抖動縮小，避免一出生就貼在一起）
     critterStops.push(startWander(c,{x:x})); }); }
 function spawnBirds(){ const box=document.getElementById("birds"); if(!box) return; box.innerHTML="";
-  let items=[sparrowSVG()];                       // 預設固定一隻麻雀在飛（不靠解鎖）
-  BIRDS.forEach(b=>{ if(store.zoo[b.key]||store.shiny[b.key]) items.push(critterMarkup(b,false)); });
-  RARE_EGG.filter(a=>a.sky).forEach(a=>{ if(store.zoo[a.key]||store.shiny[a.key]) items.push(critterMarkup(a,true)); });
-  MILESTONES.filter(m=>m.sky&&store.rares[m.key]).forEach(m=>items.push('<span class="rare">'+m.svg()+'</span>'));
-  items.forEach((svg)=>{ const b=document.createElement("div"); b.className="bird"; b.innerHTML=svg;
-    b.style.top=(24+Math.random()*16).toFixed(1)+"%"; b.style.animationDuration=(15+Math.random()*13).toFixed(1)+"s"; b.style.animationDelay=(-Math.random()*14).toFixed(1)+"s"; box.appendChild(b); }); }
+  const all=skyOwned();
+  let list=all;
+  if(all.length>STAGE_SKY_MAX){
+    if(store.stageSky){ list=all.filter(a=>store.stageSky[a.key]).slice(0,STAGE_SKY_MAX);
+      if(!list.length) list=all.slice(0,STAGE_SKY_MAX); }        // 名單全失效防呆
+    else list=shuffle(all.slice()).slice(0,STAGE_SKY_MAX);
+  }
+  lastSkyKeys=new Set(list.map(a=>a.key));
+  // 一隻都沒有時保底放一隻麻雀（不靠解鎖），天空不要空到死寂
+  const items=list.length? list.map(a=>a.mk) : [sparrowSVG()];
+  // 高度分帶：同時最多 5 隻，各佔一條飛行層。帶寬 20%／抖動 .35 ⇒ 相鄰最壞仍差 2.6%（約 21px），不會疊在一起
+  const band=20/Math.max(items.length,1);
+  items.forEach((svg,i)=>{ const b=document.createElement("div"); b.className="bird"; b.innerHTML=svg;
+    b.style.top=(22+i*band+Math.random()*band*.35).toFixed(1)+"%"; b.style.animationDuration=(15+Math.random()*13).toFixed(1)+"s"; b.style.animationDelay=(-Math.random()*14).toFixed(1)+"s"; box.appendChild(b); }); }
 function hideLoading(){ const l=document.getElementById("loading"); if(!l) return; l.classList.add("hide"); setTimeout(()=>l.remove(),600); }
 // 筆順動畫（hanzi-writer，自託管資料）
 let hw=null;
@@ -1607,7 +1646,7 @@ function viewHelp(){
       ‧ <b>每一關複習看完 → 結算畫面＋第一次完成送 🥚 蛋</b>，點蛋孵出隨機小動物進圖鑑<br>
       ‧ <b>抽考 80 分以上 → 🥈 銀蛋；100 分 → 🥇 金蛋</b>（金蛋有機會孵出暗影人、鐵巨人、火焰精靈、企鵝等稀有生物；一次至少考 5 題）＋💎 礦石<br>
       ‧ 蛋池裡也有<b>殭屍、骷髏弓箭手、大蜘蛛、史萊姆</b>等怪物夥伴，孵到會住在下方草地，平常休息、偶爾散步走動<br>
-      ‧ <b>🎪 上場名單</b>：地面動物超過 8 隻時草地會太擠，到「我的進度 → 生物圖鑑」<b>點動物選 8 隻上場</b>（綠框🎪＝上場中；沒選的在後台休息，隨時可換）<br>
+      ‧ <b>🎪 上場名單</b>：生物太多會太擠，到「我的進度 → 生物圖鑑」<b>點生物選誰上場</b>（綠框🎪＝上場中；沒選的在後台休息，隨時可換）。圖鑑分成<b>🌤️ 天空（最多 5 隻，一直飛）</b>與<b>🌱 地面（最多 8 隻，走走停停）</b>，兩邊各選各的<br>
       ‧ 答對、完成關卡、每日任務都賺 <b>💰 金幣</b>，到首頁「🏪 商店」買木劍、氣球、彩虹光環等配件給主角穿<br>
       ‧ <b>📋 每日任務</b>：每天 3 個小任務（看字／答對／完成一關），各 +10💰，全完成再送一顆蛋<br>
       ‧ <b>🔨 合成台</b>：孵到<b>重複</b>的動物會記次數（×2、×3…）；到首頁「🔨 合成台」把<b>同一種集滿 3 隻</b>，就能合成 1 隻<b>閃亮版</b> ✨——牠會在世界裡<b>發光</b>，圖鑑那格也會變金框亮起來（每種一隻，永久保留）<br>
