@@ -420,7 +420,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
-const APP_VER = "v61｜2026.07.21";
+const APP_VER = "v62｜2026.07.22";
 const LS_KEY = "cwq_state_v1";
 let store = loadStore();
 function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
@@ -1892,8 +1892,8 @@ function renderReview(){
   const chars=currentChars(), c=chars[S.ci];
   if(!S.range){ const sk=S.gi+"|"+S.li+"|"+c.char;
     const firstTime=!store.seen[sk];   // 這個字以前沒複習過（v61：只有第一次複習才給 XP）
-    if(firstTime){ store.seen[sk]=1; saveStore(); if(seenCount()>=100) unlock("see100"); }
-    dailyProgress("seen");
+    if(firstTime){ store.seen[sk]=1; saveStore(); if(seenCount()>=100) unlock("see100");
+      dailyProgress("seen"); }   // v62：每日任務「看生字」只算沒看過的新字（重看不算，跟 XP 一致）
     // v61：只有「第一次複習」的字才給 XP，避免從頭按過去把看過的字重複灌 XP；停留約 1.2 秒才算（狂按拿不到）；後半段每字加成
     if(firstTime && !sessionXP.has(sk)){
       reviewTimers.push(setTimeout(()=>{ if(sessionXP.has(sk)) return; sessionXP.add(sk);
