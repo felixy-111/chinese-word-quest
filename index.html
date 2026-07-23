@@ -420,7 +420,7 @@ details.patbox:not([open]) > :not(summary){display:none !important;}
 <script>
 "use strict";
 const DATA = window.WORDS_DATA || {grades:[]};
-const APP_VER = "v62｜2026.07.22";
+const APP_VER = "v63｜2026.07.23";
 const LS_KEY = "cwq_state_v1";
 let store = loadStore();
 function loadStore(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
@@ -1879,13 +1879,11 @@ let reviewTimers=[];   // 落地音效與自動念字的排程；換字時先清
 let sessionXP=new Set();   // 本輪複習已給過 XP 的字（進 viewStudy 時清空）；來回翻同字不重複給
 function lvHintText(chars){ const li=levelInfo();
   if(li.isMax) return "🏆 已達最高等級「"+li.name+"」！";
-  const need=li.next-store.xp;
-  let acc=0, hit=-1, cnt=0;   // 從目前這個字往後推算：還要看幾個「沒複習過的新字」才會升級（已複習過的不給 XP、不算進倒數）
-  for(let i=S.ci;i<chars.length;i++){ if(store.seen[S.gi+"|"+S.li+"|"+chars[i].char]) continue;
-    cnt++; acc+=(i>=chars.length/2)?3:2; if(hit<0&&acc>=need){ hit=cnt; break; } }
-  if(hit>0) return "🔥 再看 "+hit+" 個字就升級！";
-  if(acc+(store.lessonDone[wkey()]?10:20)>=need) return "🔥 這一關看完就升級！";
-  return "🔥 差 "+need+" XP 就升級，加油衝！"; }
+  const need=li.next-store.xp;                     // 還差多少 XP 升級
+  // 每複習一個「沒看過的新字」約 +2~3 XP → 直接換算成「還要複習幾個字」，不受本關字數限制
+  // （只有複習新字才會扣 need，複習看過的字 need 不動、數字停著，等於誠實反映沒有進度）
+  const n=Math.max(1, Math.round(need/2.5));
+  return "🔥 還差複習 "+n+" 個字就升級！"; }
 function renderReview(){
   showBirds(false);   // 看單字頁不放飛天生物
   reviewTimers.forEach(clearTimeout); reviewTimers=[];
